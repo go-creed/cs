@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package go.micro.cs.service.upload;
+
+service Upload {
+  rpc WriteImage(stream Bytes) returns (stream StreamingResponse){}
+}
+
+message Bytes {
+  bytes content = 1;
+  int64 size = 2;
+}
+
+message FileInfo {
+  string file_name = 1;
+  int64 size = 2;
+}
+
+message StreamingResponse {
+  int64 size = 1;
+}
