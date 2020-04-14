@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "google/protobuf/timestamp.proto";
+
 package go.micro.cs.service.upload;
 
 service Upload {
@@ -12,8 +14,15 @@ message Bytes {
 }
 
 message FileInfo {
-  string file_name = 1;
-  int64 size = 2;
+  int64 id = 1;
+  string file_name = 2;
+  int64 size = 3;
+  string filesha256 = 4;
+  string location = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+  google.protobuf.Timestamp deleted_at = 8;
+
 }
 
 message StreamingResponse {

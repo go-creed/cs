@@ -25,6 +25,7 @@ func Init() {
 
 type Upload struct{}
 
+//如果是单文件上传，那么只需要将整个文件写入
 func (e *Upload) WriteImage(ctx context.Context, stream uploadPb.Upload_WriteImageStream) error {
 	log.Info("[Upload][SendBytes]:Start...")
 	var (
@@ -41,6 +42,7 @@ func (e *Upload) WriteImage(ctx context.Context, stream uploadPb.Upload_WriteIma
 		log.Errorf("[Upload][SendBytes]:%s", err.Error())
 		return err
 	}
+	defer file.Close()
 	for {
 		recv, err := stream.Recv()
 		if err != nil {
@@ -56,7 +58,6 @@ func (e *Upload) WriteImage(ctx context.Context, stream uploadPb.Upload_WriteIma
 			return err
 		}
 	}
-	defer file.Close()
 	hash, err := uploadService.Hash(file)
 	if err != nil {
 		log.Errorf("[Upload][SendBytes]:%s", err)
@@ -64,7 +65,10 @@ func (e *Upload) WriteImage(ctx context.Context, stream uploadPb.Upload_WriteIma
 	}
 
 	log.Info("[Upload][SendBytes]:End...")
-	return stream.SendMsg(&uploadPb.FileInfo{
-		FileName: hash,
-	})
+	info := uploadPb.FileInfo{
+		FileName:   fileInfo.FileName,
+		Filesha256: hash,
+		Size:       fileInfo.Size,
+	}
+	return stream.SendMsg(info)
 }

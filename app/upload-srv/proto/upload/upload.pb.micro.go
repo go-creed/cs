@@ -6,6 +6,7 @@ package go_micro_cs_service_upload
 import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
+	_ "github.com/golang/protobuf/ptypes/timestamp"
 	math "math"
 )
 
