@@ -2,9 +2,7 @@ package main
 
 import (
         log "github.com/micro/go-micro/v2/logger"
-	      "net/http"
         "github.com/micro/go-micro/v2/web"
-        "cs/app/user-web/handler"
 )
 
 func main() {
@@ -20,10 +18,10 @@ func main() {
         }
 
 	// register html handler
-	service.Handle("/", http.FileServer(http.Dir("html")))
+	//service.Handle("/", http.FileServer(http.Dir("html")))
 
 	// register call handler
-	service.HandleFunc("/user/call", handler.UserCall)
+	//service.HandleFunc("/user/call", handler.UserCall)
 
 	// run service
         if err := service.Run(); err != nil {
