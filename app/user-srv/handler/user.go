@@ -30,6 +30,15 @@ func (u *User) Register(ctx context.Context, request *userPb.Request, response *
 }
 
 func (u *User) Login(ctx context.Context, info *userPb.Request, response *userPb.Response) error {
+	log.Info("[User][Login]:Start...")
+	err := userService.Login(db.DB(), info.UserInfo)
+	if err != nil {
+		log.Errorf("[User][Login]:%s", err.Error())
+		return err
+	}
+	// 生成token
+	// 这里需要
+	log.Info("[User][Login]:End...")
 	return nil
 }
 

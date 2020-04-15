@@ -1,6 +1,7 @@
 package user
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -15,6 +16,10 @@ const (
 	Enable status = iota + 1
 	Disable
 	Locking
+)
+
+var (
+	UserInfoIsExist = errors.New("user info is already exists")
 )
 
 func (s *service) userInsert(db *gorm.DB, info *userPb.UserInfo) error {
@@ -38,6 +43,18 @@ func (s *service) userInsert(db *gorm.DB, info *userPb.UserInfo) error {
 	return nil
 }
 
+func (s *service) userLogin(db *gorm.DB, info *userPb.UserInfo) error {
+	prepare, err := db.DB().Prepare("select `id` from `cs`.`user_info` where `user_name`=? and `password`=? and `status`=?")
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	defer prepare.Close()
+
+	row := prepare.QueryRow(info.UserName, info.Password, Enable)
+	fmt.Println(row)
+	return nil
+}
+
 func (s *service) userIsExist(db *gorm.DB, info *userPb.UserInfo) error {
 	prepare, err := db.DB().Prepare("select `id` from `cs`.`user_info` where `phone` = ? limit 1")
 	if err != nil {
@@ -51,12 +68,16 @@ func (s *service) userIsExist(db *gorm.DB, info *userPb.UserInfo) error {
 		return errors.WithStack(err)
 	}
 	// view length
-	columns, err := query.Columns()
-	if err != nil {
-		return errors.WithStack(err)
+	var id int64
+	for query.Next() {
+		err = query.Scan(&id)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		break
 	}
-	if len(columns) != 0 {
-		return errors.WithStack(errors.New("user info is already exists"))
+	if id != 0 {
+		return UserInfoIsExist
 	}
 	return nil
 }

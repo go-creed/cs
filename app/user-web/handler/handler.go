@@ -17,7 +17,24 @@ func Init() {
 }
 
 func Login(ctx *gin.Context) {
-	ctx.PostForm("")
+	user_name := ctx.PostForm("user_name")
+	password := ctx.PostForm("password")
+	request := userPb.Request{}
+	request.UserInfo = &userPb.UserInfo{
+		UserName: user_name,
+		Password: password,
+	}
+	login, err := userClient.Login(ctx, &request)
+	if err != nil {
+		rsp.ServerError(ctx, rsp.Response{
+			Error: err,
+		})
+		return
+	}
+	rsp.Success(ctx, rsp.Response{
+		Msg:  "Login Success",
+		Data: login,
+	})
 }
 
 func Register(ctx *gin.Context) {
