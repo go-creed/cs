@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -15,6 +16,18 @@ var (
 )
 
 type service struct {
+}
+
+func (s *service) ParseToken(token string) (request *authPb.Request, err error) {
+	t := &Token{}
+	err = s.parseToken(t, token)
+	if err != nil {
+		return nil, fmt.Errorf("[Auth][ParseToken] %s", err)
+	}
+	request = new(authPb.Request)
+	request.Id = t.Id
+	request.UserName = t.UserName
+	return
 }
 
 type Token struct {
@@ -33,6 +46,7 @@ func (s *service) GenerateToken(request *authPb.Request) (string, error) {
 
 type Service interface {
 	GenerateToken(request *authPb.Request) (string, error)
+	ParseToken(token string) (request *authPb.Request, err error)
 }
 
 func GetService() Service {

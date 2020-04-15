@@ -28,6 +28,7 @@ func (a *Auth) GenerateToken(ctx context.Context, request *authPb.Request, respo
 }
 
 func (a *Auth) ParseToken(ctx context.Context, response *authPb.Response, request *authPb.Request) error {
+
 	panic("implement me")
 }
 
