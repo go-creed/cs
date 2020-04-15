@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"sync"
 
@@ -37,13 +37,13 @@ func (s *service) WriteDB(db *sql.DB, data *uploadSrv.FileInfo) error {
 
 func (s *service) Hash(file *os.File) (hashName string, err error) {
 	file.Seek(0, 0) //重置文件游标
-	all, err := ioutil.ReadAll(file)
-	//_, err = io.Copy(hash, file)
+	//all, err := ioutil.ReadAll(file)
+	hash := sha256.New()
+	_, err = io.Copy(hash, file)
 	if err != nil {
 		return "", fmt.Errorf("[Upload][Hash] 数据拷贝失败，err:%s", err)
 	}
-	hash := sha256.New()
-	return hex.EncodeToString(hash.Sum(all)), nil
+	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
 func (s *service) CreateFile(fileName string) (*os.File, error) {

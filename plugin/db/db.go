@@ -29,7 +29,6 @@ func connect() {
 		log.Fatalf("db open failure %s", err)
 	}
 	db.SetConnMaxLifetime(time.Second * 1000)
-
 	if err = db.Ping(); err != nil {
 		log.Errorf("db connect failure %s", err)
 	}
