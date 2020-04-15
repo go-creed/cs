@@ -36,7 +36,8 @@ func main() {
 	}
 
 	engine := gin.New()
-	engine.POST("/upload/image", handler.UploadImage)
+	engine.POST("/file/upload", handler.FileUpload)
+	engine.GET("/file/detail",handler.FileDetail)
 	//engine.StaticFS("/", http.Dir("./file"))
 	// register html handler
 	//service.Handle("/", http.FileServer(http.Dir("html")))

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	uploadSrv "cs/app/upload-srv/proto/upload"
@@ -18,13 +19,49 @@ func Init() {
 }
 
 type JSONP struct {
-	Error error       `json:"error"`
-	Msg   interface{} `json:"msg"`
+	Error error       `json:"error,omitempty"`
+	Msg   interface{} `json:"msg,omitempty"`
 }
 
-func UploadImage(ctx *gin.Context) {
+func FileDetail(ctx *gin.Context) {
+	filesha256, b := ctx.GetQuery("filesha256")
+	if filesha256 == "" || !b {
+		ctx.JSONP(http.StatusBadRequest, JSONP{Error: errors.New("field filesha256 mustn't empty")})
+		return
+	}
+	detail, err := uploadClient.FileDetail(ctx, &uploadSrv.FileMate{
+		Filesha256: filesha256,
+	})
+	if err != nil {
+		ctx.JSONP(http.StatusInternalServerError, JSONP{Error: err})
+		return
+	}
+	ctx.JSONP(200, JSONP{Msg: detail})
+}
+func FileUpload(ctx *gin.Context) {
 	log.Info("[Upload][Image]:Start")
-	//从 字段 file 中读取文件
+	//从 前端直接接受文件的hash值，跟其它一些东西合并看是否能够直接返回
+	var (
+		filesha256, _ = ctx.GetPostForm("filesha256")
+		fileMate      *uploadSrv.FileMate
+		err           error
+	)
+	// You need to first determine whether the file already exists
+	if filesha256 != "" {
+		fileMate, err = uploadClient.FileDetail(ctx, &uploadSrv.FileMate{
+			Filesha256: filesha256,
+		})
+		if err != nil {
+			ctx.JSONP(http.StatusInternalServerError, JSONP{Error: err})
+			return
+		}
+		if fileMate.Id != 0 {
+			log.Infof("[Upload][File]:文件 %s ，filesha256 %s 已经存在，停写入", fileMate.Filename, fileMate.Filesha256)
+			ctx.JSONP(http.StatusOK, JSONP{Msg: "The file already exists！"})
+			return
+		}
+	}
+	// Read file from stream
 	file, header, err := ctx.Request.FormFile("file")
 	if err != nil {
 		log.Errorf("[Upload][Image]:读取文件失败 %s", err)
@@ -39,8 +76,8 @@ func UploadImage(ctx *gin.Context) {
 		return
 	}
 	defer sendBytes.Close()
-	fileInfo := uploadSrv.FileInfo{
-		FileName: header.Filename,
+	fileInfo := uploadSrv.FileMate{
+		Filename: header.Filename,
 		Size:     header.Size,
 	}
 	if err := sendBytes.SendMsg(&fileInfo); err != nil {
@@ -92,6 +129,5 @@ func UploadImage(ctx *gin.Context) {
 		ctx.JSONP(http.StatusInternalServerError, JSONP{Error: err})
 		return
 	}
-
 	ctx.JSONP(200, fileInfo)
 }

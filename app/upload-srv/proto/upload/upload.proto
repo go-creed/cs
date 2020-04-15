@@ -6,16 +6,19 @@ package go.micro.cs.service.upload;
 
 service Upload {
   rpc WriteImage(stream Bytes) returns (stream StreamingResponse){}
+  rpc FileDetail(FileMate)returns(FileMate){}
 }
+
+
 
 message Bytes {
   bytes content = 1;
   int64 size = 2;
 }
 
-message FileInfo {
+message FileMate {
   int64 id = 1;
-  string file_name = 2;
+  string filename = 2;
   int64 size = 3;
   string filesha256 = 4;
   string location = 5;
@@ -25,6 +28,9 @@ message FileInfo {
   //  google.protobuf.Timestamp created_at = 6;
   //  google.protobuf.Timestamp updated_at = 7;
   //  google.protobuf.Timestamp deleted_at = 8
+}
+message DeletedAt{
+  int64 deleted_at = 1;
 }
 
 message StreamingResponse {
