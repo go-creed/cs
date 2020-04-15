@@ -6,6 +6,7 @@ package go_micro_cs_service_upload
 import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
+	_ "github.com/golang/protobuf/ptypes/timestamp"
 	math "math"
 )
 
@@ -35,6 +36,7 @@ var _ server.Option
 
 type UploadService interface {
 	WriteImage(ctx context.Context, opts ...client.CallOption) (Upload_WriteImageService, error)
+	FileDetail(ctx context.Context, in *FileMate, opts ...client.CallOption) (*FileMate, error)
 }
 
 type uploadService struct {
@@ -100,15 +102,27 @@ func (x *uploadServiceWriteImage) Recv() (*StreamingResponse, error) {
 	return m, nil
 }
 
+func (c *uploadService) FileDetail(ctx context.Context, in *FileMate, opts ...client.CallOption) (*FileMate, error) {
+	req := c.c.NewRequest(c.name, "Upload.FileDetail", in)
+	out := new(FileMate)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Upload service
 
 type UploadHandler interface {
 	WriteImage(context.Context, Upload_WriteImageStream) error
+	FileDetail(context.Context, *FileMate, *FileMate) error
 }
 
 func RegisterUploadHandler(s server.Server, hdlr UploadHandler, opts ...server.HandlerOption) error {
 	type upload interface {
 		WriteImage(ctx context.Context, stream server.Stream) error
+		FileDetail(ctx context.Context, in *FileMate, out *FileMate) error
 	}
 	type Upload struct {
 		upload
@@ -164,4 +178,8 @@ func (x *uploadWriteImageStream) Recv() (*Bytes, error) {
 		return nil, err
 	}
 	return m, nil
+}
+
+func (h *uploadHandler) FileDetail(ctx context.Context, in *FileMate, out *FileMate) error {
+	return h.UploadHandler.FileDetail(ctx, in, out)
 }
