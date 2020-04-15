@@ -19,10 +19,12 @@ message FileInfo {
   int64 size = 3;
   string filesha256 = 4;
   string location = 5;
-  google.protobuf.Timestamp created_at = 6;
-  google.protobuf.Timestamp updated_at = 7;
-  google.protobuf.Timestamp deleted_at = 8;
-
+  int64 created_at = 6;
+  int64 updated_at = 7;
+  int64 deleted_at = 8;
+  //  google.protobuf.Timestamp created_at = 6;
+  //  google.protobuf.Timestamp updated_at = 7;
+  //  google.protobuf.Timestamp deleted_at = 8
 }
 
 message StreamingResponse {

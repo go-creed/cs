@@ -2,9 +2,10 @@ package upload
 
 import (
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"os"
 	"sync"
 
@@ -26,13 +27,23 @@ var (
 type service struct {
 }
 
+func (s *service) WriteDB(db *sql.DB, data *uploadSrv.FileInfo) error {
+	err := s.insertFileMate(db, data)
+	if err != nil {
+		return fmt.Errorf("[Upload][WriteDB] 数据库写入失败, err:%s", err)
+	}
+	return nil
+}
+
 func (s *service) Hash(file *os.File) (hashName string, err error) {
-	hash := sha256.New()
-	_, err = io.Copy(hash, file)
+	file.Seek(0, 0) //重置文件游标
+	all, err := ioutil.ReadAll(file)
+	//_, err = io.Copy(hash, file)
 	if err != nil {
 		return "", fmt.Errorf("[Upload][Hash] 数据拷贝失败，err:%s", err)
 	}
-	return hex.EncodeToString(hash.Sum(nil)), nil
+	hash := sha256.New()
+	return hex.EncodeToString(hash.Sum(all)), nil
 }
 
 func (s *service) CreateFile(fileName string) (*os.File, error) {
@@ -71,9 +82,10 @@ type FileBytes struct {
 }
 
 type Service interface {
-	Write(file *os.File, bytes []byte) error      //写图片
-	CreateFile(fileName string) (*os.File, error) //创建文件
-	Hash(file *os.File) (string, error)           //Hash
+	Write(file *os.File, bytes []byte) error            //写图片
+	CreateFile(fileName string) (*os.File, error)       //创建文件
+	Hash(file *os.File) (string, error)                 //Hash
+	WriteDB(db *sql.DB, data *uploadSrv.FileInfo) error //写入db文件
 }
 
 // Init Service Model Like Redis, Mysql ....

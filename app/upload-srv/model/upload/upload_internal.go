@@ -3,9 +3,9 @@ package upload
 import (
 	"database/sql"
 	"path/filepath"
+	"time"
 
 	uploadPb "cs/app/upload-srv/proto/upload"
-	"github.com/golang/protobuf/ptypes"
 )
 
 func (s *service) imagesExt(fileName string) (string, bool) {
@@ -25,7 +25,8 @@ func (s *service) insertFileMate(db *sql.DB, info *uploadPb.FileInfo) (err error
 		return err
 	}
 	defer prepare.Close()
-	now := ptypes.TimestampNow()
+	//now := ptypes.TimestampNow()
+	now := time.Now().Unix()
 	info.CreatedAt = now
 	info.UpdatedAt = now
 	result, err := prepare.Exec(info.Filesha256, info.FileName, info.Location, info.CreatedAt, info.UpdatedAt)

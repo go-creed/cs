@@ -87,8 +87,7 @@ func UploadImage(ctx *gin.Context) {
 		}
 	}()
 	<-isClose
-	var x interface{}
-	if err := sendBytes.RecvMsg(x); err != nil {
+	if err := sendBytes.RecvMsg(&fileInfo); err != nil {
 		log.Errorf("[Upload][Image]:数据发送失败 %s", err)
 		ctx.JSONP(http.StatusInternalServerError, JSONP{Error: err})
 		return

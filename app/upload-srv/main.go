@@ -6,6 +6,7 @@ import (
 	"cs/app/upload-srv/handler"
 	"cs/app/upload-srv/model"
 	upload "cs/app/upload-srv/proto/upload"
+	"cs/plugin/db"
 	"github.com/micro/cli/v2"
 	"github.com/micro/go-micro/v2"
 	log "github.com/micro/go-micro/v2/logger"
@@ -30,6 +31,8 @@ func main() {
 	// Initialise service
 	service.Init(
 		micro.Action(func(c *cli.Context) error {
+			// init db
+			db.Init()
 			// init model
 			model.Init()
 			// init handler
