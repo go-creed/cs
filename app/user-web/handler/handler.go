@@ -1,42 +1,46 @@
 package handler
 
 import (
-	"context"
-	"encoding/json"
-	"net/http"
-	"time"
-
+	"github.com/gin-gonic/gin"
 	"github.com/micro/go-micro/v2/client"
-	user "path/to/service/proto/user"
+
+	userPb "cs/app/user-srv/proto/user"
+	"cs/public/rsp"
 )
 
-func UserCall(w http.ResponseWriter, r *http.Request) {
-	// decode the incoming request as json
-	var request map[string]interface{}
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
+var (
+	userClient userPb.UserService
+)
 
-	// call the backend service
-	userClient := user.NewUserService("go.micro.cs.service.user", client.DefaultClient)
-	rsp, err := userClient.Call(context.TODO(), &user.Request{
-		Name: request["name"].(string),
-	})
+func Init() {
+	userClient = userPb.NewUserService("go.micro.cs.service.user", client.DefaultClient)
+}
+
+func Login(ctx *gin.Context) {
+	ctx.PostForm("")
+}
+
+func Register(ctx *gin.Context) {
+	// Introducing parameter validators in the future like "validator" https://juejin.im/post/5e89dc725188257399158b5d
+	user_name := ctx.PostForm("user_name")
+	password := ctx.PostForm("password")
+	phone := ctx.PostForm("phone")
+	request := userPb.Request{}
+	request.UserInfo = &userPb.UserInfo{
+		UserName: user_name,
+		Password: password,
+		Phone:    phone,
+	}
+	login, err := userClient.Register(ctx, &request)
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		rsp.ServerError(ctx, rsp.Response{
+			Error: err,
+		})
 		return
 	}
-
-	// we want to augment the response
-	response := map[string]interface{}{
-		"msg": rsp.Msg,
-		"ref": time.Now().UnixNano(),
-	}
-
-	// encode and write the response as json
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
+	rsp.Success(ctx, rsp.Response{
+		Msg:  "Register Success",
+		Data: login,
+	})
+	return
 }

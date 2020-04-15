@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"os"
+	"sync"
 
 	uploadMd "cs/app/upload-srv/model/upload"
 	uploadPb "cs/app/upload-srv/proto/upload"
@@ -13,16 +14,19 @@ import (
 )
 
 var (
+	once          sync.Once
 	uploadService uploadMd.Service
 )
 
 func Init() {
 	var err error
-	uploadService, err = uploadMd.GetService()
-	if err != nil {
-		log.Fatal("[Upload] Handler Init Failure , %s", err)
-		return
-	}
+	once.Do(func() {
+		uploadService, err = uploadMd.GetService()
+		if err != nil {
+			log.Fatal("[Upload] Handler Init Failure , %s", err)
+			return
+		}
+	})
 }
 
 type Upload struct{}
