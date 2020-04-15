@@ -4,8 +4,10 @@ import (
 	"context"
 	"sync"
 
+	"github.com/micro/go-micro/v2/client"
 	log "github.com/micro/go-micro/v2/logger"
 
+	authPb "cs/app/auth-srv/proto/auth"
 	userMd "cs/app/user-srv/model/user"
 	userPb "cs/app/user-srv/proto/user"
 	"cs/plugin/db"
@@ -14,6 +16,7 @@ import (
 var (
 	once        sync.Once
 	userService userMd.Service
+	userClient  authPb.AuthService
 )
 
 type User struct{}
@@ -37,6 +40,15 @@ func (u *User) Login(ctx context.Context, info *userPb.Request, response *userPb
 		return err
 	}
 	// 生成token
+	token, err := userClient.GenerateToken(ctx, &authPb.Request{
+		Id:       info.UserInfo.Id,
+		UserName: info.UserInfo.UserName,
+	})
+	if err != nil {
+		log.Errorf("[User][Login]:%s", err.Error())
+		return err
+	}
+	response.Token = token.Token
 	// 这里需要
 	log.Info("[User][Login]:End...")
 	return nil
@@ -50,5 +62,6 @@ func Init() {
 			log.Fatal("[Upload] Handler Init Failure , %s", err)
 			return
 		}
+		userClient = authPb.NewAuthService("go.micro.cs.service.auth", client.DefaultClient)
 	})
 }

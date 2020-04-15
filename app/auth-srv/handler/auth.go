@@ -2,47 +2,38 @@ package handler
 
 import (
 	"context"
+	"sync"
 
 	log "github.com/micro/go-micro/v2/logger"
 
-	auth "cs/app/auth-srv/proto/auth"
+	"cs/app/auth-srv/model/auth"
+	authPb "cs/app/auth-srv/proto/auth"
+)
+
+var (
+	once sync.Once
+	s    auth.Service
 )
 
 type Auth struct{}
 
-// Call is a single request handler called via client.Call or the generated client code
-func (e *Auth) Call(ctx context.Context, req *auth.Request, rsp *auth.Response) error {
-	log.Info("Received Auth.Call request")
-	rsp.Msg = "Hello " + req.Name
+func (a *Auth) GenerateToken(ctx context.Context, request *authPb.Request, response *authPb.Response) error {
+	token, err := s.GenerateToken(request)
+	if err != nil {
+		return err
+	}
+	response.Token = token
+	log.Infof("[Auth][GenerateToken] id:%d , token:%s", request.Id, token)
 	return nil
 }
 
-// Stream is a server side stream handler called via client.Stream or the generated client code
-func (e *Auth) Stream(ctx context.Context, req *auth.StreamingRequest, stream auth.Auth_StreamStream) error {
-	log.Infof("Received Auth.Stream request with count: %d", req.Count)
-
-	for i := 0; i < int(req.Count); i++ {
-		log.Infof("Responding: %d", i)
-		if err := stream.Send(&auth.StreamingResponse{
-			Count: int64(i),
-		}); err != nil {
-			return err
-		}
-	}
-
-	return nil
+func (a *Auth) ParseToken(ctx context.Context, response *authPb.Response, request *authPb.Request) error {
+	panic("implement me")
 }
 
-// PingPong is a bidirectional stream handler called via client.Stream or the generated client code
-func (e *Auth) PingPong(ctx context.Context, stream auth.Auth_PingPongStream) error {
-	for {
-		req, err := stream.Recv()
-		if err != nil {
-			return err
-		}
-		log.Infof("Got ping %v", req.Stroke)
-		if err := stream.Send(&auth.Pong{Stroke: req.Stroke}); err != nil {
-			return err
-		}
-	}
+func Init() {
+	once.Do(func() {
+		log.Info("[Auth][Handler] Init ...")
+		s = auth.GetService()
+	})
 }
