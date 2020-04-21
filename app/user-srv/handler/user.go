@@ -49,6 +49,8 @@ func (u *User) Login(ctx context.Context, info *userPb.Request, response *userPb
 		return err
 	}
 	response.Token = token.Token
+	response.UserName = info.UserInfo.UserName
+	response.UserId = info.UserInfo.Id
 	// 这里需要
 	log.Info("[User][Login]:End...")
 	return nil

@@ -3,13 +3,14 @@ package main
 import (
 	"time"
 
-	"cs/app/upload-web/handler"
 	"github.com/gin-gonic/gin"
 	"github.com/micro/cli/v2"
 	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/registry/etcd"
 	"github.com/micro/go-micro/v2/web"
+
+	"cs/app/upload-web/handler"
 )
 
 func main() {
@@ -34,10 +35,10 @@ func main() {
 	); err != nil {
 		log.Fatal(err)
 	}
-
 	engine := gin.New()
-	engine.POST("/file/upload", handler.FileUpload)
-	engine.GET("/file/detail",handler.FileDetail)
+	file := engine.Group("/file", handler.Auth())
+	file.POST("/upload", handler.FileUpload)
+	file.GET("/detail", handler.FileDetail)
 	//engine.StaticFS("/", http.Dir("./file"))
 	// register html handler
 	//service.Handle("/", http.FileServer(http.Dir("html")))

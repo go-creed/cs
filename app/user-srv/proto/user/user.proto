@@ -15,6 +15,7 @@ message Response{
   string user_name = 2;
   sint64 status = 3;
   string token = 4;
+  int64 user_id = 5;
 }
 
 message UserInfo {

@@ -20,3 +20,7 @@ func (s *service) parseToken(this jwt.Claims, token string) error {
 	}
 	return claims.Claims.Valid()
 }
+
+func (s *service) saveTokenToRedis() {
+
+}

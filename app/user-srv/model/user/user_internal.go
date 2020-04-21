@@ -1,7 +1,6 @@
 package user
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -51,7 +50,9 @@ func (s *service) userLogin(db *gorm.DB, info *userPb.UserInfo) error {
 	defer prepare.Close()
 
 	row := prepare.QueryRow(info.UserName, info.Password, Enable)
-	fmt.Println(row)
+	if err = row.Scan(&info.Id); err != nil {
+		return errors.WithStack(err)
+	}
 	return nil
 }
 

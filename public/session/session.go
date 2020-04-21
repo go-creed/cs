@@ -11,11 +11,12 @@ import (
 )
 
 var (
-	sessionPrefix = "session-x-"
-	store         *sessions.CookieStore
+	sessionPrefix        = "session-x-"
+	store                *sessions.CookieStore
+	RememberMeCookieName = "remember-me-token"
 )
 
-func Init() {
+func init() {
 	store = sessions.NewCookieStore([]byte("x984r739#$%^$5egodfgosDSFASDG25@#"))
 }
 
@@ -26,7 +27,6 @@ func GetSessionGin(ctx *gin.Context) *sessions.Session {
 
 // Use http to get session
 func GetSession(w http.ResponseWriter, r *http.Request) *sessions.Session {
-
 	var xId string
 	for _, cookie := range r.Cookies() {
 		if strings.Index(cookie.Name, sessionPrefix) == 0 {

@@ -1,11 +1,15 @@
 package handler
 
 import (
+	"net/http"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/micro/go-micro/v2/client"
 
 	userPb "cs/app/user-srv/proto/user"
 	"cs/public/rsp"
+	"cs/public/session"
 )
 
 var (
@@ -31,6 +35,18 @@ func Login(ctx *gin.Context) {
 		})
 		return
 	}
+
+	ctx.Writer.Header().Add("set-cookie", "application/json; charset=utf-8")
+	expire := time.Now().Add(30 * time.Minute)
+	cookie := http.Cookie{Name: session.RememberMeCookieName, Value: login.Token, Path: "/", Expires: expire, MaxAge: 90000}
+	http.SetCookie(ctx.Writer, &cookie)
+
+	sessionGin := session.GetSessionGin(ctx)
+	sessionGin.Values["userId"] = login.UserId
+	sessionGin.Values["userName"] = login.UserName
+	_ = sessionGin.Save(ctx.Request, ctx.Writer)
+
+	login.UserId = 0
 	rsp.Success(ctx, rsp.Response{
 		Msg:  "Login Success",
 		Data: login,

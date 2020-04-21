@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/pkg/errors"
 
 	authPb "cs/app/auth-srv/proto/auth"
 )
@@ -41,7 +42,12 @@ func (s *service) GenerateToken(request *authPb.Request) (string, error) {
 	token.Id = request.Id
 	token.UserName = request.UserName
 	token.ExpiresAt = time.Now().Add(time.Hour * 24 * 7).Unix()
-	return s.generateToken(token)
+	generateToken, err := s.generateToken(token)
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+
+	return
 }
 
 type Service interface {
