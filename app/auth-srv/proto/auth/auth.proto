@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package go.micro.cs.service.auth;
+
+service Auth {
+  rpc GenerateToken(Request)returns(Response){}
+  rpc ParseToken(Response)returns(Request){}
+}
+
+message Request {
+  int64 id = 1;
+  string user_name = 2;
+}
+
+
+message Response{
+  string token = 1;
+}

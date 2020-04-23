@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package go.micro.cs.service.user;
+
+service User {
+  rpc Login(Request)returns(Response){}
+  rpc Register(Request)returns(Response){}
+}
+message Request {
+  UserInfo user_info = 1;
+}
+
+message Response{
+  string msg = 1;
+  string user_name = 2;
+  sint64 status = 3;
+  string token = 4;
+  int64 user_id = 5;
+}
+
+message UserInfo {
+  int64 id = 1;
+  string user_name = 2;
+  string password = 3;
+  string phone = 4;
+  int64 status = 5;
+  int64 created_at = 6;
+  int64 updated_at = 7;
+}
