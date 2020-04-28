@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 
 	authPb "cs/app/auth-srv/proto/auth"
+	"cs/plugin/cache"
 )
 
 type service struct{}
@@ -40,6 +41,8 @@ func (s *service) GenerateToken(request *authPb.Request) (string, error) {
 		return "", errors.WithStack(err)
 	}
 	// write token to redis
-
+	if err = s.saveToCache(cache.Cache(), s.key(token.Id), generateToken); err != nil {
+		return "", errors.WithStack(err)
+	}
 	return generateToken, nil
 }
