@@ -9,7 +9,7 @@ import (
 
 func TestDB(t *testing.T) {
 	Init()
-	rows, err2 := DB().Query("select userName,password from user")
+	rows, err2 := DB().DB().Query("select userName,password from user")
 	type xxx struct {
 		userName string
 		password string
@@ -27,7 +27,7 @@ func TestDB(t *testing.T) {
 	}
 
 	fmt.Println(rows, err2)
-	prepare, err := DB().Prepare("select * from user")
+	prepare, err := DB().DB().Prepare("select * from user")
 	if err != nil {
 		log.Errorf("test db failure %s", err)
 	}

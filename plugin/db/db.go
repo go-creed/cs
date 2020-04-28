@@ -33,19 +33,6 @@ func connect() {
 	log.Info("db init the connection success")
 }
 
-//func connect() {
-//	log.Info("db init the connection start")
-//	db, err = sql.Open("mysql", fmt.Sprintf("%v:%v@tcp(%v)/%v?charset=utf8&parseTime=true&loc=Local", "root", "root", "localhost:3306", "cs"))
-//	if err != nil {
-//		log.Fatalf("db open failure %s", err)
-//	}
-//	db.SetConnMaxLifetime(time.Second * 1000)
-//	if err = db.Ping(); err != nil {
-//		log.Errorf("db connect failure %s", err)
-//	}
-//	log.Info("db init the connection success")
-//}
-
 func DB() *gorm.DB {
 	return db
 }

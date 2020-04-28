@@ -12,6 +12,7 @@ import (
 	"cs/app/auth-srv/handler"
 	"cs/app/auth-srv/model"
 	auth "cs/app/auth-srv/proto/auth"
+	"cs/plugin/cache"
 )
 
 func main() {
@@ -31,6 +32,8 @@ func main() {
 	// Initialise service
 	service.Init(
 		micro.Action(func(context *cli.Context) error {
+			// Init Redis
+			cache.Init()
 			// Init Model
 			model.Init()
 			// Init Handler
