@@ -11,8 +11,11 @@ import (
 )
 
 var (
+	store *sessions.CookieStore
+)
+
+const (
 	sessionPrefix        = "session-x-"
-	store                *sessions.CookieStore
 	RememberMeCookieName = "remember-me-token"
 )
 

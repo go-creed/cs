@@ -14,6 +14,7 @@ var (
 type Service interface {
 	GenerateToken(request *authPb.Request) (string, error)
 	ParseToken(token string) (request *authPb.Request, err error)
+	GetToken(request *authPb.Request) (string, error)
 }
 
 func GetService() Service {
