@@ -5,6 +5,7 @@ package go.micro.cs.service.auth;
 service Auth {
   rpc GenerateToken(Request)returns(Response){}
   rpc ParseToken(Response)returns(Request){}
+  rpc GetToken(Request)returns(Response){}
 }
 
 message Request {

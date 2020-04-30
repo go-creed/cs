@@ -44,6 +44,7 @@ func NewAuthEndpoints() []*api.Endpoint {
 type AuthService interface {
 	GenerateToken(ctx context.Context, in *Request, opts ...client.CallOption) (*Response, error)
 	ParseToken(ctx context.Context, in *Response, opts ...client.CallOption) (*Request, error)
+	GetToken(ctx context.Context, in *Request, opts ...client.CallOption) (*Response, error)
 }
 
 type authService struct {
@@ -78,17 +79,29 @@ func (c *authService) ParseToken(ctx context.Context, in *Response, opts ...clie
 	return out, nil
 }
 
+func (c *authService) GetToken(ctx context.Context, in *Request, opts ...client.CallOption) (*Response, error) {
+	req := c.c.NewRequest(c.name, "Auth.GetToken", in)
+	out := new(Response)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Auth service
 
 type AuthHandler interface {
 	GenerateToken(context.Context, *Request, *Response) error
 	ParseToken(context.Context, *Response, *Request) error
+	GetToken(context.Context, *Request, *Response) error
 }
 
 func RegisterAuthHandler(s server.Server, hdlr AuthHandler, opts ...server.HandlerOption) error {
 	type auth interface {
 		GenerateToken(ctx context.Context, in *Request, out *Response) error
 		ParseToken(ctx context.Context, in *Response, out *Request) error
+		GetToken(ctx context.Context, in *Request, out *Response) error
 	}
 	type Auth struct {
 		auth
@@ -107,4 +120,8 @@ func (h *authHandler) GenerateToken(ctx context.Context, in *Request, out *Respo
 
 func (h *authHandler) ParseToken(ctx context.Context, in *Response, out *Request) error {
 	return h.AuthHandler.ParseToken(ctx, in, out)
+}
+
+func (h *authHandler) GetToken(ctx context.Context, in *Request, out *Response) error {
+	return h.AuthHandler.GetToken(ctx, in, out)
 }
