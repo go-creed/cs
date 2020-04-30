@@ -24,9 +24,17 @@ func (s *service) generateToken(this jwt.Claims) (string, error) {
 	return claims.SignedString(ketSecret)
 }
 
-func (s *service) saveToCache(conn redis.Conn, key, token string) (err error) {
-	_, err = conn.Do("setex", key, expire, token)
+func (s *service) saveToCache(conn redis.Conn, userId int64, token string) (err error) {
+	_, err = conn.Do("setex", s.key(userId), expire, token)
 	return err
+}
+
+func (s *service) getByCache(conn redis.Conn, userId int64) (token string, err error) {
+	do, err := conn.Do("get", s.key(userId))
+	if err != nil {
+		return "", err
+	}
+	return do.(string), nil
 }
 
 func (s *service) parseToken(this jwt.Claims, token string) error {
