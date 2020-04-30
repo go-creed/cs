@@ -36,9 +36,13 @@ func main() {
 		log.Fatal(err)
 	}
 	engine := gin.New()
-	file := engine.Group("/file", handler.Auth())
-	file.POST("/upload", handler.FileUpload)
-	file.GET("/detail", handler.FileDetail)
+
+	file := engine.Group("/file").Use(handler.AuthWrapper())
+	{
+		file.POST("/upload", handler.FileUpload)
+		file.GET("/detail", handler.FileDetail)
+	}
+
 	//engine.StaticFS("/", http.Dir("./file"))
 	// register html handler
 	//service.Handle("/", http.FileServer(http.Dir("html")))

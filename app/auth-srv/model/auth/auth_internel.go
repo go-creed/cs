@@ -2,9 +2,10 @@ package auth
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/gomodule/redigo/redis"
+	"github.com/go-redis/redis"
 )
 
 var (
@@ -12,7 +13,7 @@ var (
 )
 
 const (
-	expire = 3 * 3600 * 24
+	expire = 3 * 3600 * 24 * time.Second
 )
 
 func (s *service) key(key int64) string {
@@ -24,17 +25,13 @@ func (s *service) generateToken(this jwt.Claims) (string, error) {
 	return claims.SignedString(ketSecret)
 }
 
-func (s *service) saveToCache(conn redis.Conn, userId int64, token string) (err error) {
-	_, err = conn.Do("setex", s.key(userId), expire, token)
-	return err
+func (s *service) saveToCache(rd *redis.Client, userId int64, token string) (err error) {
+	return rd.Set(s.key(userId), token, expire).Err()
 }
 
-func (s *service) getByCache(conn redis.Conn, userId int64) (token string, err error) {
-	do, err := conn.Do("get", s.key(userId))
-	if err != nil {
-		return "", err
-	}
-	return do.(string), nil
+func (s *service) getByCache(rd *redis.Client, userId int64) (token string, err error) {
+	err = rd.Get(s.key(userId)).Scan(&token)
+	return
 }
 
 func (s *service) parseToken(this jwt.Claims, token string) error {

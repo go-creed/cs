@@ -1,17 +1,17 @@
-package auth_handler
+package handler
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/gin-gonic/gin"
 	log "github.com/micro/go-micro/v2/logger"
 
+	authPb "cs/app/auth-srv/proto/auth"
 	"cs/public/rsp"
 	"cs/public/session"
 )
 
 func AuthWrapper() gin.HandlerFunc {
-	log.Info("use auth middleware...")
 	return func(ctx *gin.Context) {
 		cookie, err := ctx.Cookie(session.RememberMeCookieName)
 		if err != nil {
@@ -22,22 +22,45 @@ func AuthWrapper() gin.HandlerFunc {
 			return
 		}
 		sess := session.GetSessionGin(ctx)
-		if sess.ID != "" {
-			if sess.Values["valid"] != nil {
-				rsp.ServerError(ctx, rsp.Response{
-					Error: err,
-				})
-				ctx.Abort()
-				return
-			} else {
-				userId := sess.Values["userId"].(int64)
-				if userId != 0 {
-					//TODO 调用远程服务
-				}
-			}
-
+		if sess.ID == "" {
+			err = errors.New("session verification failed")
+			rsp.ServerError(ctx, rsp.Response{
+				Error: err,
+			})
+			ctx.Abort()
+			return
 		}
-		fmt.Println(cookie)
+
+		if sess.Values["valid"] != nil || sess.Values["userId"].(int64) == 0 {
+			rsp.ServerError(ctx, rsp.Response{
+				Error: err,
+			})
+			ctx.Abort()
+			return
+		}
+
+		userId := sess.Values["userId"].(int64)
+		//TODO Call remote service to get token
+		token, err := authClient.GetToken(ctx, &authPb.Request{
+			Id: userId,
+		})
+		if err != nil {
+			log.Errorf("[AuthWrapper],err: %s", err)
+			rsp.ServerError(ctx, rsp.Response{
+				Error: err,
+			})
+			ctx.Abort()
+			return
+		}
+		if token.Token != cookie {
+			err = errors.New("token不一致")
+			log.Error("[AuthWrapper],err:", err)
+			rsp.ServerError(ctx, rsp.Response{
+				Error: err,
+			})
+			ctx.Abort()
+			return
+		}
 		ctx.Next()
 	}
 }

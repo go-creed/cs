@@ -17,9 +17,21 @@ var (
 
 type Auth struct{}
 
+func (a *Auth) GetToken(ctx context.Context, request *authPb.Request, response *authPb.Response) error {
+	log.Info("get token")
+	token, err := s.GetToken(request)
+	if err != nil {
+		log.Errorf("[Auth][GetToken]:%s", err.Error())
+		return err
+	}
+	response.Token = token
+	return nil
+}
+
 func (a *Auth) GenerateToken(ctx context.Context, request *authPb.Request, response *authPb.Response) error {
 	token, err := s.GenerateToken(request)
 	if err != nil {
+		log.Errorf("[Auth][GenerateToken]:%s", err.Error())
 		return err
 	}
 	response.Token = token

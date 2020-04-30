@@ -3,13 +3,14 @@ package main
 import (
 	"time"
 
-	"cs/app/user-web/handler"
 	"github.com/gin-gonic/gin"
 	"github.com/micro/cli/v2"
 	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/registry/etcd"
 	"github.com/micro/go-micro/v2/web"
+
+	"cs/app/user-web/handler"
 )
 
 func main() {
@@ -36,9 +37,14 @@ func main() {
 		log.Fatal(err)
 	}
 	engine := gin.New()
+	gin.Default()
 	// register gin handler
 	engine.POST("/login", handler.Login)
 	engine.POST("/register", handler.Register)
+	auth := engine.Use(handler.AuthWrapper())
+	{
+		auth.GET("/detail", handler.Detail)
+	}
 	service.Handle("/", engine)
 	// register html handler
 	//service.Handle("/", http.FileServer(http.Dir("html")))

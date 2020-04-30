@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/micro/go-micro/v2/client"
 
+	authPb "cs/app/auth-srv/proto/auth"
 	userPb "cs/app/user-srv/proto/user"
 	"cs/public/rsp"
 	"cs/public/session"
@@ -14,10 +15,12 @@ import (
 
 var (
 	userClient userPb.UserService
+	authClient authPb.AuthService
 )
 
 func Init() {
 	userClient = userPb.NewUserService("go.micro.cs.service.user", client.DefaultClient)
+	authClient = authPb.NewAuthService("go.micro.cs.service.auth", client.DefaultClient)
 }
 
 func Login(ctx *gin.Context) {
@@ -76,4 +79,12 @@ func Register(ctx *gin.Context) {
 		Data: login,
 	})
 	return
+}
+
+func Detail(ctx *gin.Context) {
+	//
+	rsp.Success(ctx, rsp.Response{
+		Msg:  "Detail Success",
+		Data: "...",
+	})
 }
