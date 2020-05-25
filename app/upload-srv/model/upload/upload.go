@@ -10,9 +10,9 @@ import (
 
 	"github.com/jinzhu/gorm"
 
-	uploadSrv "cs/app/upload-srv/proto/upload"
 	log "github.com/micro/go-micro/v2/logger"
 
+	uploadSrv "cs/app/upload-srv/proto/upload"
 	//"github.com/micro/go-micro/v2/config/source/file"
 )
 
@@ -55,6 +55,10 @@ func (s *service) Hash(file *os.File) (hashName string, err error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
+//func (s *service) CacheChunk(rd *redis.Client, data *uploadSrv.ChunkResponse) error {
+//
+//}
+
 func (s *service) CreateFile(fileName string) (*os.File, string, error) {
 	pwd, _ := os.Getwd()
 	pwd += path
@@ -96,6 +100,7 @@ type Service interface {
 	Hash(file *os.File) (string, error)                                          //Hash
 	WriteDB(db *gorm.DB, data *uploadSrv.FileMate) error                         //写入db文件
 	FileDetail(db *gorm.DB, data *uploadSrv.FileMate, condition ...string) error //获取文件详情
+	//CacheChunk(rd *redis.Client, data *uploadSrv.ChunkResponse) error            //将分块信息存入redis
 }
 
 // Init Service Model Like Redis, Mysql ....

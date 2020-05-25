@@ -9,7 +9,8 @@ import (
 
 	authPb "cs/app/auth-srv/proto/auth"
 	userPb "cs/app/user-srv/proto/user"
-	"cs/public/rsp"
+	_const "cs/public/const"
+	middleware "cs/public/gin-middleware"
 	"cs/public/session"
 )
 
@@ -19,8 +20,8 @@ var (
 )
 
 func Init() {
-	userClient = userPb.NewUserService("go.micro.cs.service.user", client.DefaultClient)
-	authClient = authPb.NewAuthService("go.micro.cs.service.auth", client.DefaultClient)
+	userClient = userPb.NewUserService(_const.UserSrv, client.DefaultClient)
+	authClient = authPb.NewAuthService(_const.AuthSrv, client.DefaultClient)
 }
 
 func Login(ctx *gin.Context) {
@@ -33,7 +34,7 @@ func Login(ctx *gin.Context) {
 	}
 	login, err := userClient.Login(ctx, &request)
 	if err != nil {
-		rsp.ServerError(ctx, rsp.Response{
+		middleware.ServerError(ctx, middleware.Response{
 			Error: err,
 		})
 		return
@@ -50,7 +51,7 @@ func Login(ctx *gin.Context) {
 	_ = sessionGin.Save(ctx.Request, ctx.Writer)
 
 	login.UserId = 0
-	rsp.Success(ctx, rsp.Response{
+	middleware.ServerError(ctx, middleware.Response{
 		Msg:  "Login Success",
 		Data: login,
 	})
@@ -69,12 +70,12 @@ func Register(ctx *gin.Context) {
 	}
 	login, err := userClient.Register(ctx, &request)
 	if err != nil {
-		rsp.ServerError(ctx, rsp.Response{
+		middleware.ServerError(ctx, middleware.Response{
 			Error: err,
 		})
 		return
 	}
-	rsp.Success(ctx, rsp.Response{
+	middleware.Success(ctx, middleware.Response{
 		Msg:  "Register Success",
 		Data: login,
 	})
@@ -83,7 +84,7 @@ func Register(ctx *gin.Context) {
 
 func Detail(ctx *gin.Context) {
 	//
-	rsp.Success(ctx, rsp.Response{
+	middleware.Success(ctx, middleware.Response{
 		Msg:  "Detail Success",
 		Data: "...",
 	})

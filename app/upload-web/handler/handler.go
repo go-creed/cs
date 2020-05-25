@@ -2,62 +2,105 @@ package handler
 
 import (
 	"errors"
-	"net/http"
 
-	uploadSrv "cs/app/upload-srv/proto/upload"
-	"github.com/gin-gonic/gin"
 	"github.com/micro/go-micro/v2/client"
 	log "github.com/micro/go-micro/v2/logger"
+
+	authPb "cs/app/auth-srv/proto/auth"
+	uploadPb "cs/app/upload-srv/proto/upload"
+	_const "cs/public/const"
+	"cs/public/gin-middleware"
 )
 
 var (
-	uploadClient uploadSrv.UploadService
+	uploadClient uploadPb.UploadService
+	authClient   authPb.AuthService
 )
 
 func Init() {
-	uploadClient = uploadSrv.NewUploadService("go.micro.cs.service.upload", client.DefaultClient)
+	uploadClient = uploadPb.NewUploadService(_const.UploadSrv, client.DefaultClient)
+	authClient = authPb.NewAuthService(_const.AuthSrv, client.DefaultClient)
 }
 
-type JSONP struct {
-	Error error       `json:"error,omitempty"`
-	Msg   interface{} `json:"msg,omitempty"`
-}
-
-func FileDetail(ctx *gin.Context) {
+func FileDetail(ctx *middleware.MicroContext) {
 	filesha256, b := ctx.GetQuery("filesha256")
 	if filesha256 == "" || !b {
-		ctx.JSONP(http.StatusBadRequest, JSONP{Error: errors.New("field filesha256 mustn't empty")})
+		middleware.ServerError(ctx, middleware.Response{
+			Error: errors.New("field filesha256 mustn't empty"),
+		})
 		return
 	}
-	detail, err := uploadClient.FileDetail(ctx, &uploadSrv.FileMate{
+	detail, err := uploadClient.FileDetail(ctx, &uploadPb.FileMate{
 		Filesha256: filesha256,
 	})
 	if err != nil {
-		ctx.JSONP(http.StatusInternalServerError, JSONP{Error: err})
+		middleware.ServerError(ctx, middleware.Response{
+			Error: err,
+		})
 		return
 	}
-	ctx.JSONP(200, JSONP{Msg: detail})
+	middleware.Success(ctx, middleware.Response{
+		Data: detail,
+	})
 }
-func FileUpload(ctx *gin.Context) {
-	log.Info("[Upload][Image]:Start")
+
+func FileChunk(ctx *middleware.MicroContext) {
+	log.Info("[Chunk][File]:Start")
+	//接收一个文件大小就行了
+	var (
+		params struct {
+			FileSize   int64  `json:"file_size" form:"file_size" validate:"min=1,max=10"`
+			Filesha256 string `json:"filesha_256" form:"filesha_256"`
+		}
+		err error
+	)
+	if err = ctx.ShouldBind(&params); err != nil {
+		log.Errorf("[Chunk][File]:解析参数失败 %s", err)
+		middleware.RequestError(ctx, middleware.Response{})
+		return
+	}
+	if params.FileSize <= 0 {
+		err = errors.New("session verification failed")
+		middleware.RequestError(ctx, middleware.Response{
+			Error: err,
+		})
+		return
+	}
+	if chunk, err := uploadClient.FileChunk(ctx, &uploadPb.ChunkRequest{
+		Filesha256: params.Filesha256,
+		UserId:     ctx.UserId,
+		Size:       params.FileSize,
+	}); err != nil {
+		middleware.ServerError(ctx, middleware.Response{
+			Error: err,
+		})
+	} else {
+		middleware.Success(ctx, middleware.Response{Data: chunk})
+	}
+	log.Info("[Chunk][File]:End")
+	return
+}
+
+func FileUpload(ctx *middleware.MicroContext) {
+	log.Info("[Upload][File]:Start")
 	//从 前端直接接受文件的hash值，跟其它一些东西合并看是否能够直接返回
 	var (
 		filesha256, _ = ctx.GetPostForm("filesha256")
-		fileMate      *uploadSrv.FileMate
+		fileMate      *uploadPb.FileMate
 		err           error
 	)
 	// You need to first determine whether the file already exists
 	if filesha256 != "" {
-		fileMate, err = uploadClient.FileDetail(ctx, &uploadSrv.FileMate{
+		fileMate, err = uploadClient.FileDetail(ctx, &uploadPb.FileMate{
 			Filesha256: filesha256,
 		})
 		if err != nil {
-			ctx.JSONP(http.StatusInternalServerError, JSONP{Error: err})
+			middleware.ServerError(ctx, middleware.Response{Error: err})
 			return
 		}
 		if fileMate.Id != 0 {
 			log.Infof("[Upload][File]:文件 %s ，filesha256 %s 已经存在，停写入", fileMate.Filename, fileMate.Filesha256)
-			ctx.JSONP(http.StatusOK, JSONP{Msg: "The file already exists！"})
+			middleware.ServerError(ctx, middleware.Response{Error: err})
 			return
 		}
 	}
@@ -65,7 +108,7 @@ func FileUpload(ctx *gin.Context) {
 	file, header, err := ctx.Request.FormFile("file")
 	if err != nil {
 		log.Errorf("[Upload][Image]:读取文件失败 %s", err)
-		ctx.JSONP(http.StatusInternalServerError, JSONP{Error: err})
+		middleware.ServerError(ctx, middleware.Response{Error: err})
 		return
 	}
 	log.Infof("[Upload][Image]:size:%d,fileName:%s", header.Size, header.Filename)
@@ -76,7 +119,7 @@ func FileUpload(ctx *gin.Context) {
 		return
 	}
 	defer sendBytes.Close()
-	fileInfo := uploadSrv.FileMate{
+	fileInfo := uploadPb.FileMate{
 		Filename: header.Filename,
 		Size:     header.Size,
 	}
@@ -109,14 +152,14 @@ func FileUpload(ctx *gin.Context) {
 	isClose := make(chan struct{}) //无缓冲通道，等待输入某个东西来关闭
 	go func() {
 		for x := range b {
-			err := sendBytes.Send(&uploadSrv.Bytes{Content: x, Size: header.Size})
+			err := sendBytes.Send(&uploadPb.Bytes{Content: x, Size: header.Size})
 			if err != nil {
 				log.Errorf("[Upload][Image]:数据发送失败 %s", err)
 				return
 			}
 		}
 		isClose <- struct{}{}
-		if err = sendBytes.Send(&uploadSrv.Bytes{
+		if err = sendBytes.Send(&uploadPb.Bytes{
 			Content: nil,
 		}); err != nil {
 			log.Errorf("[Upload][Image]:数据发送失败 %s", err)
@@ -126,7 +169,7 @@ func FileUpload(ctx *gin.Context) {
 	<-isClose
 	if err := sendBytes.RecvMsg(&fileInfo); err != nil {
 		log.Errorf("[Upload][Image]:数据发送失败 %s", err)
-		ctx.JSONP(http.StatusInternalServerError, JSONP{Error: err})
+		middleware.ServerError(ctx, middleware.Response{Error: err})
 		return
 	}
 	ctx.JSONP(200, fileInfo)

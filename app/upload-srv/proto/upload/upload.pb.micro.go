@@ -6,7 +6,6 @@ package go_micro_cs_service_upload
 import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
-	_ "github.com/golang/protobuf/ptypes/timestamp"
 	math "math"
 )
 
@@ -45,6 +44,8 @@ func NewUploadEndpoints() []*api.Endpoint {
 type UploadService interface {
 	WriteImage(ctx context.Context, opts ...client.CallOption) (Upload_WriteImageService, error)
 	FileDetail(ctx context.Context, in *FileMate, opts ...client.CallOption) (*FileMate, error)
+	FileChunk(ctx context.Context, in *ChunkRequest, opts ...client.CallOption) (*ChunkResponse, error)
+	FileChunkLegitimate(ctx context.Context, in *ChunkResponse, opts ...client.CallOption) (*ChunkLegitimateResponse, error)
 }
 
 type uploadService struct {
@@ -120,17 +121,41 @@ func (c *uploadService) FileDetail(ctx context.Context, in *FileMate, opts ...cl
 	return out, nil
 }
 
+func (c *uploadService) FileChunk(ctx context.Context, in *ChunkRequest, opts ...client.CallOption) (*ChunkResponse, error) {
+	req := c.c.NewRequest(c.name, "Upload.FileChunk", in)
+	out := new(ChunkResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *uploadService) FileChunkLegitimate(ctx context.Context, in *ChunkResponse, opts ...client.CallOption) (*ChunkLegitimateResponse, error) {
+	req := c.c.NewRequest(c.name, "Upload.FileChunkLegitimate", in)
+	out := new(ChunkLegitimateResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Upload service
 
 type UploadHandler interface {
 	WriteImage(context.Context, Upload_WriteImageStream) error
 	FileDetail(context.Context, *FileMate, *FileMate) error
+	FileChunk(context.Context, *ChunkRequest, *ChunkResponse) error
+	FileChunkLegitimate(context.Context, *ChunkResponse, *ChunkLegitimateResponse) error
 }
 
 func RegisterUploadHandler(s server.Server, hdlr UploadHandler, opts ...server.HandlerOption) error {
 	type upload interface {
 		WriteImage(ctx context.Context, stream server.Stream) error
 		FileDetail(ctx context.Context, in *FileMate, out *FileMate) error
+		FileChunk(ctx context.Context, in *ChunkRequest, out *ChunkResponse) error
+		FileChunkLegitimate(ctx context.Context, in *ChunkResponse, out *ChunkLegitimateResponse) error
 	}
 	type Upload struct {
 		upload
@@ -190,4 +215,12 @@ func (x *uploadWriteImageStream) Recv() (*Bytes, error) {
 
 func (h *uploadHandler) FileDetail(ctx context.Context, in *FileMate, out *FileMate) error {
 	return h.UploadHandler.FileDetail(ctx, in, out)
+}
+
+func (h *uploadHandler) FileChunk(ctx context.Context, in *ChunkRequest, out *ChunkResponse) error {
+	return h.UploadHandler.FileChunk(ctx, in, out)
+}
+
+func (h *uploadHandler) FileChunkLegitimate(ctx context.Context, in *ChunkResponse, out *ChunkLegitimateResponse) error {
+	return h.UploadHandler.FileChunkLegitimate(ctx, in, out)
 }

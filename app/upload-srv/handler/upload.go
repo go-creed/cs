@@ -2,11 +2,15 @@ package handler
 
 import (
 	"context"
+	"fmt"
+	"math"
 	"os"
 	"sync"
+	"time"
 
 	uploadMd "cs/app/upload-srv/model/upload"
 	uploadPb "cs/app/upload-srv/proto/upload"
+	"cs/plugin/cache"
 	"cs/plugin/db"
 
 	//"github.com/micro/go-micro/v2/client"
@@ -16,6 +20,10 @@ import (
 var (
 	once          sync.Once
 	uploadService uploadMd.Service
+)
+
+const (
+	chunkSize = 5 * 1024 * 1024
 )
 
 func Init() {
@@ -30,6 +38,37 @@ func Init() {
 }
 
 type Upload struct{}
+
+func (e *Upload) FileChunkLegitimate(ctx context.Context, request *uploadPb.ChunkResponse, response *uploadPb.ChunkLegitimateResponse) error {
+	return nil
+}
+
+func (e *Upload) uploadId(userId int64) string {
+	return fmt.Sprintf("MP_%d_%x", userId, time.Now().UnixNano())
+}
+
+func (e *Upload) FileChunk(ctx context.Context, request *uploadPb.ChunkRequest, response *uploadPb.ChunkResponse) (err error) {
+	response.Size = request.Size
+	response.UploadId = e.uploadId(request.UserId)
+	response.Filesha256 = request.Filesha256
+	response.ChunkSize = chunkSize
+	response.ChunkCount = int64(math.Ceil(float64(request.Size) / chunkSize))
+
+	rd := cache.Cache()
+	pipeline := rd.Pipeline()
+	{
+		pipeline.HSet(response.UploadId, "size", response.Size)
+		pipeline.HSet(response.UploadId, "upload_id", response.UploadId)
+		pipeline.HSet(response.UploadId, "filesha256", response.Filesha256)
+		pipeline.HSet(response.UploadId, "chunk_size", response.ChunkSize)
+		pipeline.HSet(response.UploadId, "chunk_count", response.ChunkCount)
+	}
+	if _, err := pipeline.Exec(); err != nil {
+		log.Errorf("[Upload][FileChunk]:%s", err.Error())
+		return err
+	}
+	return nil
+}
 
 // Return file mate of the file
 func (e *Upload) FileDetail(ctx context.Context, info *uploadPb.FileMate, info2 *uploadPb.FileMate) error {
