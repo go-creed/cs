@@ -3,12 +3,14 @@ package handler
 import (
 	"errors"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/micro/go-micro/v2/client"
 	log "github.com/micro/go-micro/v2/logger"
 
 	authPb "cs/app/auth-srv/proto/auth"
 	uploadPb "cs/app/upload-srv/proto/upload"
 	_const "cs/public/const"
+	"cs/public/ecode"
 	"cs/public/gin-middleware"
 )
 
@@ -85,14 +87,23 @@ func FileUpload(ctx *middleware.MicroContext) {
 	log.Info("[Upload][File]:Start")
 	//从 前端直接接受文件的hash值，跟其它一些东西合并看是否能够直接返回
 	var (
-		filesha256, _ = ctx.GetPostForm("filesha256")
-		fileMate      *uploadPb.FileMate
-		err           error
+		params struct {
+			UploadId   string `json:"upload_id" form:"upload_id" validate:"ne=''"`
+			Filesha256 string `json:"filesha256" form:"filesha256" validate:"ne=''"`
+			Offset     int64  `json:"offset" form:"offset" validate:"gt=0"`
+		}
+		fileMate *uploadPb.FileMate
+		err      error
 	)
+	ctx.Bind(&params)
+	if err = validator.New().Struct(params); err != nil {
+		middleware.ServerError(ctx, middleware.Response{Error: ecode.New(ecode.ErrInternalServer,err)})
+		return
+	}
 	// You need to first determine whether the file already exists
-	if filesha256 != "" {
+	if params.Filesha256 != "" {
 		fileMate, err = uploadClient.FileDetail(ctx, &uploadPb.FileMate{
-			Filesha256: filesha256,
+			Filesha256: params.Filesha256,
 		})
 		if err != nil {
 			middleware.ServerError(ctx, middleware.Response{Error: err})
@@ -111,6 +122,11 @@ func FileUpload(ctx *middleware.MicroContext) {
 		middleware.ServerError(ctx, middleware.Response{Error: err})
 		return
 	}
+	uploadClient.FileChunkLegitimate(ctx, &uploadPb.ChunkResponse{
+		Filesha256: params.Filesha256,
+		UploadId:   params.UploadId,
+		ChunkCount: params.Offset,
+	})
 	log.Infof("[Upload][Image]:size:%d,fileName:%s", header.Size, header.Filename)
 	//创建一个发送字节数据包的连接通道
 	sendBytes, err := uploadClient.WriteImage(ctx)

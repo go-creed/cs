@@ -5,16 +5,24 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+
+	"cs/public/ecode"
 )
 
 type Response struct {
 	Code  int         `json:"code"`
-	Error error       `json:"error,omitempty"`
+	Error error       `json:"-"`
 	Msg   string      `json:"msg"`
 	Data  interface{} `json:"data,omitempty"`
 }
 
+type responseErr struct {
+	Response
+	Err string `json:"error,omitempty"`
+}
+
 func ginContext(ctx context.Context) *gin.Context {
+
 	switch ctx.(type) {
 	case *gin.Context:
 		return ctx.(*gin.Context)
@@ -26,13 +34,32 @@ func ginContext(ctx context.Context) *gin.Context {
 }
 
 func Success(ctx context.Context, rsp Response) {
-	ginContext(ctx).JSONP(http.StatusOK, rsp)
+	ginContext(ctx).JSON(http.StatusOK, rsp)
 }
 
 func ServerError(ctx context.Context, rsp Response) {
-	ginContext(ctx).JSONP(http.StatusInternalServerError, rsp)
+	errRsp(ctx, http.StatusInternalServerError, rsp)
 }
 
 func RequestError(ctx context.Context, rsp Response) {
-	ginContext(ctx).JSONP(http.StatusBadRequest, rsp)
+	errRsp(ctx, http.StatusBadRequest, rsp)
+}
+
+func errRsp(ctx context.Context, code int, rsp Response) {
+
+	switch rsp.Error.(type) {
+	case *ecode.Err:
+		err := rsp.Error.(*ecode.Err)
+		rsp.Code = err.Code
+		rsp.Msg += err.Message
+		ginContext(ctx).JSONP(code, responseErr{Response: rsp, Err: err.Errord.Error()})
+		return
+	case *ecode.Errno:
+		err := rsp.Error.(*ecode.Errno)
+		rsp.Code = err.Code
+		rsp.Msg = err.Error()
+	default:
+		rsp.Msg = rsp.Error.Error()
+	}
+	ginContext(ctx).JSONP(code, responseErr{Response: rsp, Err: "2"})
 }

@@ -8,10 +8,11 @@ import (
 	"sync"
 	"time"
 
+	"cs/app/upload-srv/cache"
 	uploadMd "cs/app/upload-srv/model/upload"
 	uploadPb "cs/app/upload-srv/proto/upload"
-	"cs/plugin/cache"
 	"cs/plugin/db"
+	"cs/plugin/rd"
 
 	//"github.com/micro/go-micro/v2/client"
 	log "github.com/micro/go-micro/v2/logger"
@@ -40,6 +41,9 @@ func Init() {
 type Upload struct{}
 
 func (e *Upload) FileChunkLegitimate(ctx context.Context, request *uploadPb.ChunkResponse, response *uploadPb.ChunkLegitimateResponse) error {
+
+	getMap := cache.ReadMapUpload(rd.Cache(), request.UploadId).GetMap()
+	fmt.Println(getMap)
 	return nil
 }
 
@@ -53,17 +57,12 @@ func (e *Upload) FileChunk(ctx context.Context, request *uploadPb.ChunkRequest, 
 	response.Filesha256 = request.Filesha256
 	response.ChunkSize = chunkSize
 	response.ChunkCount = int64(math.Ceil(float64(request.Size) / chunkSize))
-
-	rd := cache.Cache()
-	pipeline := rd.Pipeline()
-	{
-		pipeline.HSet(response.UploadId, "size", response.Size)
-		pipeline.HSet(response.UploadId, "upload_id", response.UploadId)
-		pipeline.HSet(response.UploadId, "filesha256", response.Filesha256)
-		pipeline.HSet(response.UploadId, "chunk_size", response.ChunkSize)
-		pipeline.HSet(response.UploadId, "chunk_count", response.ChunkCount)
-	}
-	if _, err := pipeline.Exec(); err != nil {
+	if err := cache.NewMapUpload().
+		SetSize(response.Size).
+		SetUploadId(response.UploadId).
+		SetFilesha256(response.Filesha256).
+		SetChunkSize(response.ChunkSize).
+		SetChunkCount(response.ChunkCount).Write(rd.Cache(), response.UploadId); err != nil {
 		log.Errorf("[Upload][FileChunk]:%s", err.Error())
 		return err
 	}

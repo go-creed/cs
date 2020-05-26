@@ -6,11 +6,8 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sync"
 
 	"github.com/jinzhu/gorm"
-
-	log "github.com/micro/go-micro/v2/logger"
 
 	uploadSrv "cs/app/upload-srv/proto/upload"
 	//"github.com/micro/go-micro/v2/config/source/file"
@@ -20,10 +17,7 @@ const (
 	path = "/app/upload-srv/static/file/"
 )
 
-var (
-	once sync.Once
-	s    *service
-)
+
 
 type service struct {
 }
@@ -100,13 +94,4 @@ type Service interface {
 	Hash(file *os.File) (string, error)                                          //Hash
 	WriteDB(db *gorm.DB, data *uploadSrv.FileMate) error                         //写入db文件
 	FileDetail(db *gorm.DB, data *uploadSrv.FileMate, condition ...string) error //获取文件详情
-	//CacheChunk(rd *redis.Client, data *uploadSrv.ChunkResponse) error            //将分块信息存入redis
-}
-
-// Init Service Model Like Redis, Mysql ....
-func Init() {
-	once.Do(func() {
-		log.Info("[Upload][Model] init service model like redis,mysql...")
-		s = &service{}
-	})
 }

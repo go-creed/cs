@@ -6,7 +6,7 @@ import (
 	"cs/app/upload-srv/handler"
 	"cs/app/upload-srv/model"
 	upload "cs/app/upload-srv/proto/upload"
-	"cs/plugin/cache"
+	"cs/plugin/rd"
 	"cs/plugin/db"
 	_const "cs/public/const"
 
@@ -37,7 +37,7 @@ func main() {
 			// init db
 			db.Init()
 			// init redis
-			cache.Init()
+			rd.Init()
 			// init model
 			model.Init()
 			// init gin-middleware
