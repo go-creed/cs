@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -40,10 +41,36 @@ func Init() {
 
 type Upload struct{}
 
-func (e *Upload) FileChunkLegitimate(ctx context.Context, request *uploadPb.ChunkResponse, response *uploadPb.ChunkLegitimateResponse) error {
+func (e *Upload) FileMerge(ctx context.Context, request *uploadPb.ChunkResponse, response *uploadPb.FileMate) error {
 
-	getMap := cache.ReadMapUpload(rd.Cache(), request.UploadId).GetMap()
-	fmt.Println(getMap)
+	chunk, err := cache.ReadChunk(rd.Cache(), request.UploadId)
+	if err != nil {
+		return err
+	} else if chunk == false {
+		return nil
+	}
+	// TODO 合并之后返回 对应的文件路径等文件信息
+
+	return nil
+}
+
+func (e *Upload) FileChunkLegitimate(ctx context.Context, request *uploadPb.ChunkResponse, response *uploadPb.ChunkResponse) error {
+	log.Info("[Upload][FileChunkLegitimate]:Start...")
+	mapUpload, err := cache.ReadMapUpload(rd.Cache(), request.UploadId)
+	if err != nil {
+		log.Errorf("[Upload][FileChunkLegitimate]: 缓存数据加载失败 %s", err.Error())
+		return err
+	}
+	if !(mapUpload.GetChunkCount() >= request.ChunkCount &&
+		mapUpload.GetFilesha256() == request.Filesha256 &&
+		mapUpload.GetUploadId() == request.GetUploadId()) {
+		err = errors.New("file's chunk verification failed！")
+		log.Errorf("[Upload][FileChunkLegitimate]: 缓存数据校验失败 %s", err.Error())
+		return err
+	}
+	*response = *request
+	response.Size = mapUpload.GetChunkSize()
+	log.Info("[Upload][FileChunkLegitimate]:End...")
 	return nil
 }
 
@@ -52,6 +79,7 @@ func (e *Upload) uploadId(userId int64) string {
 }
 
 func (e *Upload) FileChunk(ctx context.Context, request *uploadPb.ChunkRequest, response *uploadPb.ChunkResponse) (err error) {
+	log.Info("[Upload][FileChunk]:Start...")
 	response.Size = request.Size
 	response.UploadId = e.uploadId(request.UserId)
 	response.Filesha256 = request.Filesha256
@@ -66,6 +94,7 @@ func (e *Upload) FileChunk(ctx context.Context, request *uploadPb.ChunkRequest, 
 		log.Errorf("[Upload][FileChunk]:%s", err.Error())
 		return err
 	}
+	log.Info("[Upload][FileDetail]:End...")
 	return nil
 }
 
@@ -78,17 +107,17 @@ func (e *Upload) FileDetail(ctx context.Context, info *uploadPb.FileMate, info2 
 		return err
 	}
 	log.Info("[Upload][FileDetail]:End...")
+	fmt.Println(info2, info)
 	*info2 = *info
 	return nil
 }
 
-// Single file write
-func (e *Upload) WriteImage(ctx context.Context, stream uploadPb.Upload_WriteImageStream) error {
+func (e *Upload) WriteBytes(ctx context.Context, stream uploadPb.Upload_WriteBytesStream) error {
 	log.Info("[Upload][SendBytes]:Start...")
 	var (
 		file     *os.File
 		location string
-		fileInfo uploadPb.FileMate
+		fileInfo uploadPb.FileRequest
 		err      error
 	)
 	//recv the msg to create file
@@ -96,14 +125,13 @@ func (e *Upload) WriteImage(ctx context.Context, stream uploadPb.Upload_WriteIma
 		log.Errorf("[Upload][SendBytes]:%s", err.Error())
 		return err
 	}
-	log.Infof("文件名:%s，文件大小%d", fileInfo.Filename, fileInfo.Size)
 	if file, location, err = uploadService.CreateFile(fileInfo.Filename); err != nil {
 		log.Errorf("[Upload][SendBytes]:%s", err.Error())
 		return err
 	}
 	defer file.Close()
+	var size int
 	for {
-		// Recv the msg
 		recv, err := stream.Recv()
 		if err != nil {
 			log.Errorf("[Upload][SendBytes]:%s", err.Error())
@@ -112,31 +140,27 @@ func (e *Upload) WriteImage(ctx context.Context, stream uploadPb.Upload_WriteIma
 		if recv.Content == nil {
 			break
 		}
+		size += len(recv.Content)
 		err = uploadService.Write(file, recv.Content)
 		if err != nil {
 			log.Errorf("[Upload][SendBytes]:%s", err)
 			return err
 		}
 	}
-	// Read file to hash
-	hash, err := uploadService.Hash(file)
+	fmt.Println(location)
+	log.Info("[Upload][SendBytes]:End...")
+
+	upload, err := cache.ReadMapUpload(rd.Cache(), fileInfo.UploadId)
 	if err != nil {
 		log.Errorf("[Upload][SendBytes]:%s", err)
 		return err
 	}
-	// Assembly file meta
-	info := uploadPb.FileMate{
-		Filename:   fileInfo.Filename,
-		Filesha256: hash,
-		Size:       fileInfo.Size,
-		Location:   location,
-	}
-	// Write the file mate to mysql
-	if err = uploadService.WriteDB(db.DB(), &info); err != nil {
-		log.Error("[Upload][SendBytes]:%s", err)
+	if err = upload.SetChunk(rd.Cache(), fileInfo.UploadId, fileInfo.Index); err != nil {
+		log.Errorf("[Upload][SendBytes]:%s", err)
 		return err
 	}
-	log.Info("[Upload][SendBytes]:End...")
-	// Notify the file mate
-	return stream.SendMsg(&info)
+	return stream.SendMsg(&uploadPb.ChunkResponse{
+		FileName: fileInfo.Filename,
+		Size:     int64(size),
+	})
 }

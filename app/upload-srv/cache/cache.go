@@ -2,6 +2,8 @@ package cache
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -9,11 +11,12 @@ import (
 )
 
 const (
-	size       = "size"
-	uploadId   = "uploadId"
-	filesha256 = "filesha256"
-	chunkSize  = "chunk_size"
-	chunkCount = "chunk_count"
+	size        = "size"
+	uploadId    = "uploadId"
+	filesha256  = "filesha256"
+	chunkSize   = "chunk_size"
+	chunkCount  = "chunk_count"
+	chunkPrefix = "chunk_"
 )
 
 type cache struct {
@@ -21,11 +24,58 @@ type cache struct {
 	data map[string]interface{}
 }
 
-func ReadMapUpload(rd *redis.Client, key string) *cache {
+func (um *cache) chunkField(index int64) string {
+	return fmt.Sprintf("%s%d", chunkPrefix, index)
+}
+
+func (um *cache) SetChunk(rd *redis.Client, key string, index int64) error {
+	um.set(um.chunkField(index), true)
+	return rd.HSetNX(key, um.chunkField(index), true).Err()
+}
+
+func ReadChunk(rd *redis.Client, key string) (bool, error) {
+	result, err := rd.HGetAll(key).Result()
+	if err != nil {
+		return false, err
+	}
+	var count int
+	var countLimit int
+	for k := range result {
+		if strings.HasPrefix(k, chunkPrefix) {
+			count++
+		} else if k == chunkCount {
+			countLimitStr, _ := result[k]
+			countLimit, _ = strconv.Atoi(countLimitStr)
+		}
+	}
+	return countLimit == count, nil
+}
+
+func ReadMapUpload(rd *redis.Client, key string) (*cache, error) {
 	upload := NewMapUpload()
-	val := rd.HMGet(key).Val()
-	fmt.Println(val)
-	return upload
+	result, err := rd.HMGet(key, size, uploadId, filesha256, chunkSize, chunkCount).Result()
+	if err != nil {
+		return upload, err
+	}
+	for _, v := range result {
+		if v == nil {
+			return upload, redis.Nil
+		}
+	}
+	s, _ := strconv.Atoi(result[0].(string))
+	cs, _ := strconv.Atoi(result[3].(string))
+	cc, _ := strconv.Atoi(result[4].(string))
+	upload.
+		SetSize(int64(s)).
+		SetUploadId(result[1].(string)).
+		SetFilesha256(result[2].(string)).
+		SetChunkSize(int64(cs)).
+		SetChunkCount(int64(cc))
+	return upload, nil
+}
+
+func (um *cache) Chunk() {
+
 }
 
 func (um *cache) Write(rd *redis.Client, key string) error {
@@ -84,7 +134,7 @@ func (um *cache) GetFilesha256() string {
 	f, _ := um.get(filesha256).(string)
 	return f
 }
-func (um *cache) SetChunkSize(v interface{}) *cache {
+func (um *cache) SetChunkSize(v int64) *cache {
 	um.set(chunkSize, v)
 	return um
 }

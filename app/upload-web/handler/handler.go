@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"io"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/micro/go-micro/v2/client"
@@ -90,103 +91,147 @@ func FileUpload(ctx *middleware.MicroContext) {
 		params struct {
 			UploadId   string `json:"upload_id" form:"upload_id" validate:"ne=''"`
 			Filesha256 string `json:"filesha256" form:"filesha256" validate:"ne=''"`
-			Offset     int64  `json:"offset" form:"offset" validate:"gt=0"`
+			Index      int64  `json:"index" form:"index" validate:"gt=0"`
+			FileName   string `json:"file_name" form:"file_name" validate:"ne=''"`
 		}
 		fileMate *uploadPb.FileMate
 		err      error
 	)
-	ctx.Bind(&params)
+	_ = ctx.Bind(&params)
 	if err = validator.New().Struct(params); err != nil {
-		middleware.ServerError(ctx, middleware.Response{Error: ecode.New(ecode.ErrInternalServer,err)})
+		log.Errorf("[Upload][File]: 参数解析失败 %s", err)
+		middleware.ServerError(ctx, middleware.Response{Error: ecode.New(ecode.ErrRequestServer, err)})
 		return
 	}
 	// You need to first determine whether the file already exists
-	if params.Filesha256 != "" {
-		fileMate, err = uploadClient.FileDetail(ctx, &uploadPb.FileMate{
-			Filesha256: params.Filesha256,
-		})
-		if err != nil {
-			middleware.ServerError(ctx, middleware.Response{Error: err})
-			return
-		}
-		if fileMate.Id != 0 {
-			log.Infof("[Upload][File]:文件 %s ，filesha256 %s 已经存在，停写入", fileMate.Filename, fileMate.Filesha256)
-			middleware.ServerError(ctx, middleware.Response{Error: err})
-			return
-		}
-	}
-	// Read file from stream
-	file, header, err := ctx.Request.FormFile("file")
+	fileMate, err = uploadClient.FileDetail(ctx, &uploadPb.FileMate{
+		Filesha256: params.Filesha256,
+	})
 	if err != nil {
-		log.Errorf("[Upload][Image]:读取文件失败 %s", err)
-		middleware.ServerError(ctx, middleware.Response{Error: err})
+		log.Errorf("[Upload][File]: 文件详情获取失败 %s", err)
+		middleware.ServerError(ctx, middleware.Response{Error: ecode.New(ecode.ErrInternalServer, err)})
 		return
 	}
-	uploadClient.FileChunkLegitimate(ctx, &uploadPb.ChunkResponse{
+	if fileMate.Id != 0 {
+		log.Errorf("[Upload][File]:文件 %s ，filesha256 %s 已经存在，停写入", fileMate.Filename, fileMate.Filesha256)
+		middleware.ServerError(ctx, middleware.Response{Error: ecode.New(ecode.ErrInternalServer, err)})
+		return
+	}
+
+	legitimate, err := uploadClient.FileChunkLegitimate(ctx, &uploadPb.ChunkResponse{
 		Filesha256: params.Filesha256,
 		UploadId:   params.UploadId,
-		ChunkCount: params.Offset,
+		ChunkCount: params.Index,
 	})
-	log.Infof("[Upload][Image]:size:%d,fileName:%s", header.Size, header.Filename)
-	//创建一个发送字节数据包的连接通道
-	sendBytes, err := uploadClient.WriteImage(ctx)
 	if err != nil {
-		log.Errorf("[Upload][Image]: 创建通道失败 %s", err)
+		log.Errorf("[Upload][File]:基础信息验证失败 %s", err.Error())
+		middleware.ServerError(ctx, middleware.Response{Error: ecode.New(ecode.ErrInternalServer, err)})
 		return
 	}
-	defer sendBytes.Close()
-	fileInfo := uploadPb.FileMate{
-		Filename: header.Filename,
-		Size:     header.Size,
-	}
-	if err := sendBytes.SendMsg(&fileInfo); err != nil {
-		log.Errorf("[Upload][Image]: 发送文件信息失败 %s", err)
-		return
-	}
-	//设置通道的容量10块
-	b := make(chan []byte, 10)
-	go func() {
-		var (
-			n int
-		)
-		for {
-			bt := make([]byte, 1024*1024) //开辟一个大小1m的缓冲空间
-			switch n, err = file.Read(bt); true {
-			case n < 0:
-				log.Errorf("[Upload][Image]:数据读取失败 %s", err)
-				fallthrough
-			case n == 0:
-				close(b)
-				log.Errorf("[Upload][Image]:数据读取结束")
-				return
-			case n > 0:
-				b <- bt
-			}
-		}
-	}()
+	//---
+	const cap = 1024 * 1024
+	var (
+		capNow    int
+		buf       = make([]byte, cap)
+		sendBytes uploadPb.Upload_WriteBytesService
+	)
 
-	isClose := make(chan struct{}) //无缓冲通道，等待输入某个东西来关闭
-	go func() {
-		for x := range b {
-			err := sendBytes.Send(&uploadPb.Bytes{Content: x, Size: header.Size})
-			if err != nil {
-				log.Errorf("[Upload][Image]:数据发送失败 %s", err)
-				return
-			}
-		}
-		isClose <- struct{}{}
-		if err = sendBytes.Send(&uploadPb.Bytes{
-			Content: nil,
-		}); err != nil {
-			log.Errorf("[Upload][Image]:数据发送失败 %s", err)
+	if sendBytes, err = uploadClient.WriteBytes(ctx); err != nil {
+		log.Error("[Upload][File]:创建远程调用失败 %s", err.Error())
+		middleware.ServerError(ctx, middleware.Response{Error: ecode.New(ecode.ErrGrpcServer, err)})
+		return
+	}
+	if err = sendBytes.SendMsg(&uploadPb.FileRequest{
+		Filename: filepath(params.UploadId, params.FileName, params.Index),
+		UploadId: params.UploadId,
+		Index:    params.Index,
+	}); err != nil {
+		log.Error("[Upload][File]:远程创建文件失败 %s", err.Error())
+		middleware.ServerError(ctx, middleware.Response{Error: ecode.New(ecode.ErrGrpcServer, err)})
+		return
+	}
+
+	for {
+		n, err := ctx.Request.Body.Read(buf)
+		if (n + capNow) > int(legitimate.Size) {
+			log.Errorf("[Upload][File]:上传的容量超限")
+			middleware.ServerError(ctx, middleware.Response{Error: ecode.New(ecode.ErrRequestServer, err)})
+			return
+		} else if err != nil && err != io.EOF {
+			log.Errorf("[Upload][File]:读取文件流失败")
+			middleware.ServerError(ctx, middleware.Response{Error: ecode.New(ecode.ErrInternalServer, err)})
 			return
 		}
-	}()
-	<-isClose
-	if err := sendBytes.RecvMsg(&fileInfo); err != nil {
-		log.Errorf("[Upload][Image]:数据发送失败 %s", err)
-		middleware.ServerError(ctx, middleware.Response{Error: err})
+		if err2 := sendBytes.Send(&uploadPb.Bytes{Size: int64(n), Content: buf[:n]}); err2 != nil {
+			log.Errorf("[Upload][File]:远程写入失败 %s", err2.Error())
+			middleware.ServerError(ctx, middleware.Response{Error: ecode.New(ecode.ErrGrpcOp, err2)})
+			return
+		}
+		if err == io.EOF {
+			break
+		}
+	}
+	_ = sendBytes.Send(&uploadPb.Bytes{Size: 0, Content: []byte{}})
+
+	var recv uploadPb.ChunkResponse
+	if err = sendBytes.RecvMsg(&recv); err != nil {
+		log.Errorf("[Upload][File]:远程写入失败 %s", err.Error())
+		middleware.ServerError(ctx, middleware.Response{Error: ecode.New(ecode.ErrGrpcOp, err)})
 		return
 	}
-	ctx.JSONP(200, fileInfo)
+	//if err = sendBytes.Send(&uploadPb.Bytes{
+	//	Content: nil,
+	//}); err != nil {
+	//	log.Errorf("[Upload][File]:发送结束标记 %s", err)
+	//	return
+	//}
+	//设置通道的容量10块
+	//b := make(chan []byte, 10)
+	//go func() {
+	//	var (
+	//		n int
+	//	)
+	//	for {
+	//		bt := make([]byte, 1024*1024) //开辟一个大小1m的缓冲空间
+	//		switch n, err = file.Read(bt); true {
+	//		case n < 0:
+	//			log.Errorf("[Upload][Image]:数据读取失败 %s", err)
+	//			fallthrough
+	//		case n == 0:
+	//			close(b)
+	//			log.Errorf("[Upload][Image]:数据读取结束")
+	//			return
+	//		case n > 0:
+	//			b <- bt
+	//		}
+	//	}
+	//}()
+	//
+	//isClose := make(chan struct{}) //无缓冲通道，等待输入某个东西来关闭
+	//go func() {
+	//	for x := range b {
+	//		err := sendBytes.Send(&uploadPb.Bytes{Content: x, Size: header.Size})
+	//		if err != nil {
+	//			log.Errorf("[Upload][Image]:数据发送失败 %s", err)
+	//			return
+	//		}
+	//	}
+	//	isClose <- struct{}{}
+	//	if err = sendBytes.Send(&uploadPb.Bytes{
+	//		Content: nil,
+	//	}); err != nil {
+	//		log.Errorf("[Upload][Image]:数据发送失败 %s", err)
+	//		return
+	//	}
+	//}()
+	//<-isClose
+	//if err := sendBytes.RecvMsg(&fileInfo); err != nil {
+	//	log.Errorf("[Upload][Image]:数据发送失败 %s", err)
+	//	middleware.ServerError(ctx, middleware.Response{Error: err})
+	//	return
+	//}
+	log.Info("[Upload][File]:End")
+	middleware.Success(ctx, middleware.Response{
+
+	})
 }

@@ -51,7 +51,7 @@ func Login(ctx *gin.Context) {
 	_ = sessionGin.Save(ctx.Request, ctx.Writer)
 
 	login.UserId = 0
-	middleware.ServerError(ctx, middleware.Response{
+	middleware.Success(ctx, middleware.Response{
 		Msg:  "Login Success",
 		Data: login,
 	})

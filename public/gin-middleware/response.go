@@ -46,7 +46,6 @@ func RequestError(ctx context.Context, rsp Response) {
 }
 
 func errRsp(ctx context.Context, code int, rsp Response) {
-
 	switch rsp.Error.(type) {
 	case *ecode.Err:
 		err := rsp.Error.(*ecode.Err)
@@ -59,7 +58,6 @@ func errRsp(ctx context.Context, code int, rsp Response) {
 		rsp.Code = err.Code
 		rsp.Msg = err.Error()
 	default:
-		rsp.Msg = rsp.Error.Error()
 	}
-	ginContext(ctx).JSONP(code, responseErr{Response: rsp, Err: "2"})
+	ginContext(ctx).JSONP(code, rsp)
 }

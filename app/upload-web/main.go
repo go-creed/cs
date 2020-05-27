@@ -39,7 +39,8 @@ func main() {
 	}
 	engine := gin.New()
 
-	file := engine.Group("/file").Use(middleware.AuthWrapper(handler.Auth()))
+	file := engine.Group("/file")//.
+		//Use(middleware.AuthWrapper(handler.Auth()))
 	{
 		file.POST("/upload", middleware.C(handler.FileUpload))
 		file.GET("/detail", middleware.C(handler.FileDetail))

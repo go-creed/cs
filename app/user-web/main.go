@@ -11,6 +11,7 @@ import (
 	"github.com/micro/go-micro/v2/web"
 
 	"cs/app/user-web/handler"
+	_const "cs/public/const"
 	middleware "cs/public/gin-middleware"
 )
 
@@ -22,7 +23,7 @@ func main() {
 	)
 	// create new web service
 	service := web.NewService(
-		web.Name("go.micro.cs.web.user"),
+		web.Name(_const.UploadWeb),
 		web.Version("latest"),
 		web.Registry(etcdRegistry),
 		web.Address("127.0.0.1:12003"),
