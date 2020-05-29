@@ -47,6 +47,9 @@ func (c Chunk) Index(index int64) ChunkSize {
 }
 
 func ReadChunk(rd *redis.Client, uploadId string) (c Chunk, err error) {
+	if len(rd.Keys(uploadId).Val()) == 0 { //判断这个key是否存在
+		return c, redis.Nil
+	}
 	result, err := rd.HGetAll(uploadId).Result()
 	if err != nil {
 		return

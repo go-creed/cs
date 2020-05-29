@@ -64,6 +64,7 @@ func (s *service) MergeFile(fileName string, filesha256 string) error {
 	} else if !verifyFile {
 		return errors.New("[Upload][MergeFile]文件比对失败")
 	}
+	os.RemoveAll(src)
 	return nil
 }
 

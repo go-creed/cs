@@ -38,7 +38,7 @@ func TestFileUpload(t *testing.T) {
 			return
 		} else if err == nil || err == io.EOF {
 			param := req.Param{
-				"upload_id":  "CHUNK_0_161379d0611b7568",
+				"upload_id":  "CHUNK_0_16137a0ff0de6d601",
 				"filesha256": "31ba830fb9de2ef49c0f803dab6bdebba1b8f526eb85e6a79a1305ddc7c2e54a",
 				"index":      i + 1,
 				"file_name":  "Firefox-latest.dmg",
@@ -54,6 +54,7 @@ func TestFileUpload(t *testing.T) {
 				break
 			}
 			i++
+			return
 		} else {
 			break
 		}

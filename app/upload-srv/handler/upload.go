@@ -41,7 +41,6 @@ func Init() {
 type Upload struct{}
 
 func (e *Upload) FileMerge(ctx context.Context, request *uploadPb.MergeRequest, mate *uploadPb.FileMate) error {
-	log.Info("[Upload][FileMerge]:Start...")
 	chunk, err := cache.ReadChunk(rd.Cache(), request.UploadId)
 	if err != nil {
 		log.Errorf("[Upload][FileMerge]: 缓存数据加载失败 %s", err.Error())
@@ -95,7 +94,6 @@ func (e *Upload) uploadId(userId int64) string {
 }
 
 func (e *Upload) FileChunk(ctx context.Context, request *uploadPb.ChunkRequest, response *uploadPb.ChunkResponse) (err error) {
-	log.Info("[Upload][FileChunk]:Start...")
 	response.Size = request.Size
 	response.UploadId = e.uploadId(request.UserId)
 	response.Filesha256 = request.Filesha256

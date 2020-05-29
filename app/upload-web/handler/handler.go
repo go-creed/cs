@@ -21,7 +21,10 @@ var (
 )
 
 func Init() {
-	uploadClient = uploadPb.NewUploadService(_const.UploadSrv, client.DefaultClient)
+	defaultClient := client.DefaultClient
+	defaultClient.Init(client.Retries(0)) //关闭GRPC上传接口micro进行错误重试
+	uploadClient = uploadPb.NewUploadService(_const.UploadSrv, defaultClient)
+
 	authClient = authPb.NewAuthService(_const.AuthSrv, client.DefaultClient)
 }
 
@@ -208,7 +211,7 @@ func FileMerge(ctx *middleware.MicroContext) {
 	})
 	if err != nil {
 		log.Errorf("[Upload][File]: 文件合并失败 %s", err)
-		middleware.ServerError(ctx, middleware.Response{Error: ecode.New(ecode.ErrRequestServer, err)})
+		middleware.ServerError(ctx, middleware.Response{Error: ecode.New(ecode.ErrGrpcOp, err)})
 		return
 	}
 	middleware.Success(ctx, middleware.Response{
