@@ -39,12 +39,13 @@ func main() {
 	}
 	engine := gin.New()
 
-	file := engine.Group("/file")//.
-		//Use(middleware.AuthWrapper(handler.Auth()))
+	file := engine.Group("/file") //.
+	//Use(middleware.AuthWrapper(handler.Auth()))
 	{
 		file.POST("/upload", middleware.C(handler.FileUpload))
 		file.GET("/detail", middleware.C(handler.FileDetail))
 		file.GET("/chunk", middleware.C(handler.FileChunk))
+		file.POST("/merge", middleware.C(handler.FileMerge))
 	}
 
 	//engine.StaticFS("/", http.Dir("./file"))

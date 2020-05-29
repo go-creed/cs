@@ -1,22 +1,24 @@
 package upload
 
 import (
-	"path/filepath"
+	"os"
 	"time"
 
-	uploadPb "cs/app/upload-srv/proto/upload"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
+
+	uploadPb "cs/app/upload-srv/proto/upload"
 )
 
-func (s *service) imagesExt(fileName string) (string, bool) {
-	ext := filepath.Ext(fileName)
-	switch ext {
-	case ".jpg", ".jpeg", ".png", ".ico", ".svg":
-		return ext, true
-	default:
-		return "", false
-	}
+const (
+	path = "/app/upload-srv/static/file/"
+)
+
+// get static's path
+func (s *service) staticPath() string {
+	pwd, _ := os.Getwd()
+	pwd += path
+	return pwd
 }
 
 // detailFileMate

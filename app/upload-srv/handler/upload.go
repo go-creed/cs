@@ -14,7 +14,6 @@ import (
 	uploadPb "cs/app/upload-srv/proto/upload"
 	"cs/plugin/db"
 	"cs/plugin/rd"
-
 	//"github.com/micro/go-micro/v2/client"
 	log "github.com/micro/go-micro/v2/logger"
 )
@@ -41,41 +40,58 @@ func Init() {
 
 type Upload struct{}
 
-func (e *Upload) FileMerge(ctx context.Context, request *uploadPb.ChunkResponse, response *uploadPb.FileMate) error {
-
+func (e *Upload) FileMerge(ctx context.Context, request *uploadPb.MergeRequest, mate *uploadPb.FileMate) error {
+	log.Info("[Upload][FileMerge]:Start...")
 	chunk, err := cache.ReadChunk(rd.Cache(), request.UploadId)
 	if err != nil {
+		log.Errorf("[Upload][FileMerge]: 缓存数据加载失败 %s", err.Error())
 		return err
-	} else if chunk == false {
-		return nil
 	}
-	// TODO 合并之后返回 对应的文件路径等文件信息
+	for _, chunk := range chunk.Chunks {
+		if chunk.Size != 0 {
+			err = errors.New("some block files are incomplete")
+			log.Errorf("[Upload][FileMerge]: 分块验证 %s", err.Error())
+			return err
+		}
+	}
 
+	if err = uploadService.
+		MergeFile(
+			fmt.Sprintf("/%d/%s/%s",
+				request.UserId, request.UploadId, chunk.FileName),
+			chunk.Filesha256,
+		); err != nil {
+		log.Errorf("[Upload][FileMerge]: 文件合并失败 %s", err.Error())
+		return err
+	}
+
+	//// TODO 合并之后返回 对应的文件路径等文件信息
+	//uploadService.MergeFile()
 	return nil
 }
 
-func (e *Upload) FileChunkLegitimate(ctx context.Context, request *uploadPb.ChunkResponse, response *uploadPb.ChunkResponse) error {
-	log.Info("[Upload][FileChunkLegitimate]:Start...")
-	mapUpload, err := cache.ReadMapUpload(rd.Cache(), request.UploadId)
+func (e *Upload) FileChunkVerify(ctx context.Context, request *uploadPb.ChunkRequest, response *uploadPb.ChunkResponse) error {
+	log.Info("[Upload][FileChunkVerify]:Start...")
+	chunk, err := cache.ReadChunk(rd.Cache(), request.UploadId)
 	if err != nil {
-		log.Errorf("[Upload][FileChunkLegitimate]: 缓存数据加载失败 %s", err.Error())
+		log.Errorf("[Upload][FileChunkVerify]: 缓存数据加载失败 %s", err.Error())
 		return err
 	}
-	if !(mapUpload.GetChunkCount() >= request.ChunkCount &&
-		mapUpload.GetFilesha256() == request.Filesha256 &&
-		mapUpload.GetUploadId() == request.GetUploadId()) {
+	if !(chunk.Filesha256 == request.Filesha256 &&
+		chunk.FileName == request.FileName &&
+		chunk.Count >= request.Index) {
 		err = errors.New("file's chunk verification failed！")
-		log.Errorf("[Upload][FileChunkLegitimate]: 缓存数据校验失败 %s", err.Error())
+		log.Errorf("[Upload][FileChunkVerify]: 缓存数据校验失败 %s", err.Error())
 		return err
 	}
-	*response = *request
-	response.Size = mapUpload.GetChunkSize()
-	log.Info("[Upload][FileChunkLegitimate]:End...")
+
+	response.Size = chunk.Index(request.Index).Size
+	log.Info("[Upload][FileChunkVerify]:End...")
 	return nil
 }
 
 func (e *Upload) uploadId(userId int64) string {
-	return fmt.Sprintf("MP_%d_%x", userId, time.Now().UnixNano())
+	return fmt.Sprintf("CHUNK_%d_%x", userId, time.Now().UnixNano())
 }
 
 func (e *Upload) FileChunk(ctx context.Context, request *uploadPb.ChunkRequest, response *uploadPb.ChunkResponse) (err error) {
@@ -85,13 +101,26 @@ func (e *Upload) FileChunk(ctx context.Context, request *uploadPb.ChunkRequest, 
 	response.Filesha256 = request.Filesha256
 	response.ChunkSize = chunkSize
 	response.ChunkCount = int64(math.Ceil(float64(request.Size) / chunkSize))
-	if err := cache.NewMapUpload().
-		SetSize(response.Size).
-		SetUploadId(response.UploadId).
-		SetFilesha256(response.Filesha256).
-		SetChunkSize(response.ChunkSize).
-		SetChunkCount(response.ChunkCount).Write(rd.Cache(), response.UploadId); err != nil {
-		log.Errorf("[Upload][FileChunk]:%s", err.Error())
+	response.FileName = request.FileName
+
+	chunk := cache.Chunk{
+		FileName:   response.FileName,
+		Size:       response.Size,
+		Count:      response.ChunkCount,
+		Filesha256: response.Filesha256,
+	}
+
+	chunk.Chunks = make([]cache.ChunkSize, response.ChunkCount)
+	for i := int64(0); i < response.ChunkCount; i++ {
+		chunk.Chunks[i].Index = i + 1
+		if i == response.ChunkCount-1 {
+			chunk.Chunks[i].Size = response.Size - (i)*chunkSize
+		} else {
+			chunk.Chunks[i].Size = chunkSize
+		}
+	}
+
+	if err = chunk.Write(rd.Cache(), response.UploadId); err != nil {
 		return err
 	}
 	log.Info("[Upload][FileDetail]:End...")
@@ -115,17 +144,17 @@ func (e *Upload) FileDetail(ctx context.Context, info *uploadPb.FileMate, info2 
 func (e *Upload) WriteBytes(ctx context.Context, stream uploadPb.Upload_WriteBytesStream) error {
 	log.Info("[Upload][SendBytes]:Start...")
 	var (
-		file     *os.File
-		location string
-		fileInfo uploadPb.FileRequest
-		err      error
+		file      *os.File
+		location  string
+		chunkInfo uploadPb.ChunkRequest
+		err       error
 	)
 	//recv the msg to create file
-	if err := stream.RecvMsg(&fileInfo); err != nil {
+	if err := stream.RecvMsg(&chunkInfo); err != nil {
 		log.Errorf("[Upload][SendBytes]:%s", err.Error())
 		return err
 	}
-	if file, location, err = uploadService.CreateFile(fileInfo.Filename); err != nil {
+	if file, location, err = uploadService.CreateFile(fmt.Sprintf("%d/%s/%s", chunkInfo.UserId, chunkInfo.UploadId, chunkInfo.FileName)); err != nil {
 		log.Errorf("[Upload][SendBytes]:%s", err.Error())
 		return err
 	}
@@ -148,19 +177,19 @@ func (e *Upload) WriteBytes(ctx context.Context, stream uploadPb.Upload_WriteByt
 		}
 	}
 	fmt.Println(location)
+
+	if err = cache.UpdateIndex(
+		rd.Cache(),
+		chunkInfo.UploadId,
+		chunkInfo.Index,
+		chunkInfo.Size-int64(size)); err != nil {
+		log.Errorf("[Upload][SendBytes]: 更新当前分块下载进度%s", err)
+		return err
+	}
 	log.Info("[Upload][SendBytes]:End...")
 
-	upload, err := cache.ReadMapUpload(rd.Cache(), fileInfo.UploadId)
-	if err != nil {
-		log.Errorf("[Upload][SendBytes]:%s", err)
-		return err
-	}
-	if err = upload.SetChunk(rd.Cache(), fileInfo.UploadId, fileInfo.Index); err != nil {
-		log.Errorf("[Upload][SendBytes]:%s", err)
-		return err
-	}
 	return stream.SendMsg(&uploadPb.ChunkResponse{
-		FileName: fileInfo.Filename,
+		FileName: chunkInfo.FileName,
 		Size:     int64(size),
 	})
 }

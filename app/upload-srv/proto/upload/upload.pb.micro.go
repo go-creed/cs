@@ -45,8 +45,8 @@ type UploadService interface {
 	WriteBytes(ctx context.Context, opts ...client.CallOption) (Upload_WriteBytesService, error)
 	FileDetail(ctx context.Context, in *FileMate, opts ...client.CallOption) (*FileMate, error)
 	FileChunk(ctx context.Context, in *ChunkRequest, opts ...client.CallOption) (*ChunkResponse, error)
-	FileMerge(ctx context.Context, in *ChunkResponse, opts ...client.CallOption) (*FileMate, error)
-	FileChunkLegitimate(ctx context.Context, in *ChunkResponse, opts ...client.CallOption) (*ChunkResponse, error)
+	FileMerge(ctx context.Context, in *MergeRequest, opts ...client.CallOption) (*FileMate, error)
+	FileChunkVerify(ctx context.Context, in *ChunkRequest, opts ...client.CallOption) (*ChunkResponse, error)
 }
 
 type uploadService struct {
@@ -132,7 +132,7 @@ func (c *uploadService) FileChunk(ctx context.Context, in *ChunkRequest, opts ..
 	return out, nil
 }
 
-func (c *uploadService) FileMerge(ctx context.Context, in *ChunkResponse, opts ...client.CallOption) (*FileMate, error) {
+func (c *uploadService) FileMerge(ctx context.Context, in *MergeRequest, opts ...client.CallOption) (*FileMate, error) {
 	req := c.c.NewRequest(c.name, "Upload.FileMerge", in)
 	out := new(FileMate)
 	err := c.c.Call(ctx, req, out, opts...)
@@ -142,8 +142,8 @@ func (c *uploadService) FileMerge(ctx context.Context, in *ChunkResponse, opts .
 	return out, nil
 }
 
-func (c *uploadService) FileChunkLegitimate(ctx context.Context, in *ChunkResponse, opts ...client.CallOption) (*ChunkResponse, error) {
-	req := c.c.NewRequest(c.name, "Upload.FileChunkLegitimate", in)
+func (c *uploadService) FileChunkVerify(ctx context.Context, in *ChunkRequest, opts ...client.CallOption) (*ChunkResponse, error) {
+	req := c.c.NewRequest(c.name, "Upload.FileChunkVerify", in)
 	out := new(ChunkResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
@@ -158,8 +158,8 @@ type UploadHandler interface {
 	WriteBytes(context.Context, Upload_WriteBytesStream) error
 	FileDetail(context.Context, *FileMate, *FileMate) error
 	FileChunk(context.Context, *ChunkRequest, *ChunkResponse) error
-	FileMerge(context.Context, *ChunkResponse, *FileMate) error
-	FileChunkLegitimate(context.Context, *ChunkResponse, *ChunkResponse) error
+	FileMerge(context.Context, *MergeRequest, *FileMate) error
+	FileChunkVerify(context.Context, *ChunkRequest, *ChunkResponse) error
 }
 
 func RegisterUploadHandler(s server.Server, hdlr UploadHandler, opts ...server.HandlerOption) error {
@@ -167,8 +167,8 @@ func RegisterUploadHandler(s server.Server, hdlr UploadHandler, opts ...server.H
 		WriteBytes(ctx context.Context, stream server.Stream) error
 		FileDetail(ctx context.Context, in *FileMate, out *FileMate) error
 		FileChunk(ctx context.Context, in *ChunkRequest, out *ChunkResponse) error
-		FileMerge(ctx context.Context, in *ChunkResponse, out *FileMate) error
-		FileChunkLegitimate(ctx context.Context, in *ChunkResponse, out *ChunkResponse) error
+		FileMerge(ctx context.Context, in *MergeRequest, out *FileMate) error
+		FileChunkVerify(ctx context.Context, in *ChunkRequest, out *ChunkResponse) error
 	}
 	type Upload struct {
 		upload
@@ -234,10 +234,10 @@ func (h *uploadHandler) FileChunk(ctx context.Context, in *ChunkRequest, out *Ch
 	return h.UploadHandler.FileChunk(ctx, in, out)
 }
 
-func (h *uploadHandler) FileMerge(ctx context.Context, in *ChunkResponse, out *FileMate) error {
+func (h *uploadHandler) FileMerge(ctx context.Context, in *MergeRequest, out *FileMate) error {
 	return h.UploadHandler.FileMerge(ctx, in, out)
 }
 
-func (h *uploadHandler) FileChunkLegitimate(ctx context.Context, in *ChunkResponse, out *ChunkResponse) error {
-	return h.UploadHandler.FileChunkLegitimate(ctx, in, out)
+func (h *uploadHandler) FileChunkVerify(ctx context.Context, in *ChunkRequest, out *ChunkResponse) error {
+	return h.UploadHandler.FileChunkVerify(ctx, in, out)
 }

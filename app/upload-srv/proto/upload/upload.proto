@@ -8,8 +8,8 @@ service Upload {
   rpc WriteBytes(stream Bytes) returns (stream StreamingResponse){}
   rpc FileDetail(FileMate)returns(FileMate){}
   rpc FileChunk(ChunkRequest)returns(ChunkResponse){}//获取文件分块信息
-  rpc FileMerge(ChunkResponse)returns(FileMate){}//合并文件
-  rpc FileChunkLegitimate(ChunkResponse)returns(ChunkResponse){}//确认上传分块文件是否符合缓存的数据
+  rpc FileMerge(MergeRequest)returns(FileMate){}//合并文件
+  rpc FileChunkVerify(ChunkRequest)returns(ChunkResponse){}//确认上传分块文件是否符合缓存的数据
 }
 
 message Bytes {
@@ -28,17 +28,15 @@ message FileMate {
   int64 deleted_at = 8;
 }
 
-message FileRequest {
-  string filename = 1;
-  string upload_id = 2;
-  int64 index = 3;
+message ChunkRequest{
+  string filesha256 = 1;
+  int64 size = 2;
+  int64 user_id = 3;//可以从ctx获取id
+  string file_name = 4;
+  string upload_id = 5;
+  int64 index = 6;
 }
 
-message ChunkRequest{
-  int64 size = 1;
-  int64 user_id = 2;
-  string filesha256 = 3;
-}
 message ChunkResponse{
   string filesha256 = 1;
   int64 size = 2;
@@ -46,6 +44,11 @@ message ChunkResponse{
   int64 chunk_size = 4;
   int64 chunk_count = 5;
   string file_name = 6;
+}
+
+message MergeRequest{
+  string upload_id = 1;
+  int64 user_id = 2;//可以从ctx获取id
 }
 
 message DeletedAt{

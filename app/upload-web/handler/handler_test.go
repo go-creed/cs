@@ -6,13 +6,23 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"testing"
 
 	"github.com/imroc/req"
 )
 
+func TestFile(t *testing.T) {
+	//base := filepath.Base("Users/gre/Downloads/Firefox-latest.dmg")
+	//fmt.Println(base)
+	split, file := filepath.Split("Users/gre/Downloads/Firefox-latest.dmg")
+	fmt.Println(split, file)
+
+}
 func TestFileUpload(t *testing.T) {
-	//for true {
+	//dir := filepath.Dir("Users/gre/Downloads/Firefox-latest.dmg")
+	//fmt.Println(dir)
+	//return
 	open, err := os.Open("/Users/gre/Downloads/Firefox-latest.dmg")
 	if err != nil {
 		t.Fatal(err)
@@ -28,7 +38,7 @@ func TestFileUpload(t *testing.T) {
 			return
 		} else if err == nil || err == io.EOF {
 			param := req.Param{
-				"upload_id":  "MP_0_1612da8a8bde0620",
+				"upload_id":  "CHUNK_0_161379d0611b7568",
 				"filesha256": "31ba830fb9de2ef49c0f803dab6bdebba1b8f526eb85e6a79a1305ddc7c2e54a",
 				"index":      i + 1,
 				"file_name":  "Firefox-latest.dmg",
@@ -56,9 +66,9 @@ func TestCmd(t *testing.T) {
 	var srcPath = "/Users/gre/Go/micro/src/cs/app/upload-srv/static/file"
 	var destPath = "/Users/gre/Go/micro/src/cs/app/upload-srv/static/add/1.dmg"
 	cmd := fmt.Sprintf("cd %s && ls | sort -n | xargs cat > %s", srcPath, destPath)
-	cmd = fmt.Sprintf("cd %s && ls -tr | xargs cat > %s", srcPath,destPath)
+	cmd = fmt.Sprintf("cd %s && ls -tr | xargs cat > %s", srcPath, destPath)
 	fmt.Println(cmd)
-	command := exec.Command("/bin/zsh", "-c",cmd)
+	command := exec.Command("/bin/zsh", "-c", cmd)
 	var result bytes.Buffer
 	command.Stdout = &result
 	err := command.Run()

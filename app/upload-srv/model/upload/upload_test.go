@@ -10,12 +10,6 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 )
 
-func TestUploadExt(t *testing.T) {
-	Init()
-	ext, b := s.imagesExt("sdf.png")
-	fmt.Print(ext, b)
-}
-
 func TestDB(t *testing.T) {
 	open, err := gorm.Open("mysql", fmt.Sprintf("%v:%v@tcp(%v)/%v?charset=utf8&parseTime=true&loc=Local", "root", "root", "localhost:3306", "cs"))
 	if err != nil {

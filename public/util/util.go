@@ -2,8 +2,23 @@ package util
 
 import (
 	"bytes"
+	"fmt"
 	"os/exec"
 )
+
+func VerifyFile(sha256 string, src string) (bool, error) {
+	cmd := fmt.Sprintf("shasum -a 256 %s", src)
+	shell, err := ExecLinuxShell(cmd)
+	if err != nil {
+		return false, err
+	}
+	return shell[:64] == sha256, nil
+}
+
+func MergeFile(src, dest string) (string, error) {
+	cmd := fmt.Sprintf("cd %s && ls | sort -n | xargs cat > %s", src, dest)
+	return ExecLinuxShell(cmd)
+}
 
 // 执行 linux shell command
 func ExecLinuxShell(s string) (string, error) {
@@ -22,4 +37,3 @@ func ExecLinuxShell(s string) (string, error) {
 
 	return result.String(), err
 }
-

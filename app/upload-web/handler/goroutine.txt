@@ -1,0 +1,51 @@
+//if err = sendBytes.Send(&uploadPb.Bytes{
+	//	Content: nil,
+	//}); err != nil {
+	//	log.Errorf("[Upload][File]:发送结束标记 %s", err)
+	//	return
+	//}
+	//设置通道的容量10块
+	//b := make(chan []byte, 10)
+	//go func() {
+	//	var (
+	//		n int
+	//	)
+	//	for {
+	//		bt := make([]byte, 1024*1024) //开辟一个大小1m的缓冲空间
+	//		switch n, err = file.Read(bt); true {
+	//		case n < 0:
+	//			log.Errorf("[Upload][Image]:数据读取失败 %s", err)
+	//			fallthrough
+	//		case n == 0:
+	//			close(b)
+	//			log.Errorf("[Upload][Image]:数据读取结束")
+	//			return
+	//		case n > 0:
+	//			b <- bt
+	//		}
+	//	}
+	//}()
+	//
+	//isClose := make(chan struct{}) //无缓冲通道，等待输入某个东西来关闭
+	//go func() {
+	//	for x := range b {
+	//		err := sendBytes.Send(&uploadPb.Bytes{Content: x, Size: header.Size})
+	//		if err != nil {
+	//			log.Errorf("[Upload][Image]:数据发送失败 %s", err)
+	//			return
+	//		}
+	//	}
+	//	isClose <- struct{}{}
+	//	if err = sendBytes.Send(&uploadPb.Bytes{
+	//		Content: nil,
+	//	}); err != nil {
+	//		log.Errorf("[Upload][Image]:数据发送失败 %s", err)
+	//		return
+	//	}
+	//}()
+	//<-isClose
+	//if err := sendBytes.RecvMsg(&fileInfo); err != nil {
+	//	log.Errorf("[Upload][Image]:数据发送失败 %s", err)
+	//	middleware.ServerError(ctx, middleware.Response{Error: err})
+	//	return
+	//}
