@@ -11,6 +11,7 @@ import (
 	userMd "cs/app/user-srv/model/user"
 	userPb "cs/app/user-srv/proto/user"
 	"cs/plugin/db"
+	_const "cs/public/const"
 )
 
 var (
@@ -64,6 +65,6 @@ func Init() {
 			log.Fatal("[Upload] Handler Init Failure , %s", err)
 			return
 		}
-		userClient = authPb.NewAuthService("go.micro.cs.service.auth", client.DefaultClient)
+		userClient = authPb.NewAuthService(_const.AuthSrv, client.DefaultClient)
 	})
 }

@@ -11,6 +11,8 @@ import (
 	"github.com/micro/go-micro/v2/web"
 
 	"cs/app/user-web/handler"
+	_const "cs/public/const"
+	middleware "cs/public/gin-middleware"
 )
 
 func main() {
@@ -21,7 +23,7 @@ func main() {
 	)
 	// create new web service
 	service := web.NewService(
-		web.Name("go.micro.cs.web.user"),
+		web.Name(_const.UploadWeb),
 		web.Version("latest"),
 		web.Registry(etcdRegistry),
 		web.Address("127.0.0.1:12003"),
@@ -30,7 +32,7 @@ func main() {
 	// initialise service
 	if err := service.Init(
 		web.Action(func(context *cli.Context) {
-			//Init handler
+			//Init gin-middleware
 			handler.Init()
 		}),
 	); err != nil {
@@ -38,19 +40,19 @@ func main() {
 	}
 	engine := gin.New()
 	gin.Default()
-	// register gin handler
+	// register gin gin-middleware
 	engine.POST("/login", handler.Login)
 	engine.POST("/register", handler.Register)
-	auth := engine.Use(handler.AuthWrapper())
+	auth := engine.Use(middleware.AuthWrapper(handler.Auth()))
 	{
 		auth.GET("/detail", handler.Detail)
 	}
 	service.Handle("/", engine)
-	// register html handler
+	// register html gin-middleware
 	//service.Handle("/", http.FileServer(http.Dir("html")))
 
-	// register call handler
-	//service.HandleFunc("/user/call", handler.UserCall)
+	// register call gin-middleware
+	//service.HandleFunc("/user/call", gin-middleware.UserCall)
 
 	// run service
 	if err := service.Run(); err != nil {

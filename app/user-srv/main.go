@@ -36,7 +36,7 @@ func main() {
 			db.Init()
 			// Init Model
 			model.Init()
-			// Init handler
+			// Init gin-middleware
 			handler.Init()
 			return nil
 		}),

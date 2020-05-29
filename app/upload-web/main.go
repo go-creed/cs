@@ -11,6 +11,8 @@ import (
 	"github.com/micro/go-micro/v2/web"
 
 	"cs/app/upload-web/handler"
+	_const "cs/public/const"
+	"cs/public/gin-middleware"
 )
 
 func main() {
@@ -21,7 +23,7 @@ func main() {
 	)
 	// create new web service
 	service := web.NewService(
-		web.Name("go.micro.cs.web.upload"),
+		web.Name(_const.UploadWeb),
 		web.Version("latest"),
 		web.Registry(etcdRegistry),
 		web.Address("127.0.0.1:12001"),
@@ -37,18 +39,21 @@ func main() {
 	}
 	engine := gin.New()
 
-	file := engine.Group("/file").Use(handler.AuthWrapper())
+	file := engine.Group("/file").
+		Use(middleware.AuthWrapper(handler.Auth()))
 	{
-		file.POST("/upload", handler.FileUpload)
-		file.GET("/detail", handler.FileDetail)
+		file.POST("/upload", middleware.C(handler.FileUpload))
+		file.GET("/detail", middleware.C(handler.FileDetail))
+		file.GET("/chunk", middleware.C(handler.FileChunk))
+		file.POST("/merge", middleware.C(handler.FileMerge))
 	}
 
 	//engine.StaticFS("/", http.Dir("./file"))
-	// register html handler
+	// register html gin-middleware
 	//service.Handle("/", http.FileServer(http.Dir("html")))
 
-	// register call handler
-	//service.HandleFunc("/upload/call", handler.UploadCall)
+	// register call gin-middleware
+	//service.HandleFunc("/upload/call", gin-middleware.UploadCall)
 
 	// register by gin
 	service.Handle("/", engine)

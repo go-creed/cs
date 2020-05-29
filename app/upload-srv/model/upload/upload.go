@@ -3,26 +3,19 @@ package upload
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"os"
-	"sync"
+	"path/filepath"
 
 	"github.com/jinzhu/gorm"
+	"github.com/prometheus/common/log"
 
 	uploadSrv "cs/app/upload-srv/proto/upload"
-	log "github.com/micro/go-micro/v2/logger"
+	"cs/public/util"
 
 	//"github.com/micro/go-micro/v2/config/source/file"
-)
-
-const (
-	path = "/app/upload-srv/static/file/"
-)
-
-var (
-	once sync.Once
-	s    *service
 )
 
 type service struct {
@@ -55,18 +48,38 @@ func (s *service) Hash(file *os.File) (hashName string, err error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-func (s *service) CreateFile(fileName string) (*os.File, string, error) {
-	pwd, _ := os.Getwd()
-	pwd += path
-	if err := os.MkdirAll(pwd, os.ModePerm); err != nil {
+func (s *service) MergeFile(fileName string, filesha256 string) error {
+	pwd := s.staticPath()
+	path := pwd + fileName
+	src, file := filepath.Split(path)
+	dest := src + "../" + file
+	cmd := fmt.Sprintf("cd %s && ls | sort -n | xargs cat > %s", src, dest)
+	log.Infof("[Upload][MergeFile]当前命令行参数:%s", cmd)
+	_, err := util.ExecLinuxShell(cmd)
+	if err != nil {
+		return err
+	}
+	if verifyFile, err := util.VerifyFile(filesha256, dest); err != nil {
+		return err
+	} else if !verifyFile {
+		return errors.New("[Upload][MergeFile]文件比对失败")
+	}
+	os.RemoveAll(src)
+	return nil
+}
+
+func (s *service) CreateFile(path string) (*os.File, string, error) {
+	dir := filepath.Dir(path)
+	pwd := s.staticPath()
+	if err := os.MkdirAll(pwd+dir, os.ModePerm); err != nil {
 		return nil, "", fmt.Errorf("[Upload][CreateFile] 创建文件目录, err:%s", err)
 	}
-	location := pwd + fileName
+	location := pwd + path
 	file, err := os.Create(location)
 	if err != nil {
 		return nil, "", fmt.Errorf("[Upload][SendBytes] 打开文件失败, err:%s", err)
 	}
-	return file, pwd, nil
+	return file, location, nil
 }
 
 func (s *service) Write(file *os.File, bytes []byte) (err error) {
@@ -92,16 +105,9 @@ type FileBytes struct {
 
 type Service interface {
 	Write(file *os.File, bytes []byte) error                                     //写图片
-	CreateFile(fileName string) (*os.File, string, error)                        //创建文件
+	CreateFile(path string) (*os.File, string, error)                            //创建文件
 	Hash(file *os.File) (string, error)                                          //Hash
 	WriteDB(db *gorm.DB, data *uploadSrv.FileMate) error                         //写入db文件
 	FileDetail(db *gorm.DB, data *uploadSrv.FileMate, condition ...string) error //获取文件详情
-}
-
-// Init Service Model Like Redis, Mysql ....
-func Init() {
-	once.Do(func() {
-		log.Info("[Upload][Model] init service model like redis,mysql...")
-		s = &service{}
-	})
+	MergeFile(fileName string, filesha256 string) error
 }

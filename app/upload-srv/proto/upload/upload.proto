@@ -1,15 +1,16 @@
 syntax = "proto3";
 
-import "google/protobuf/timestamp.proto";
+// import "google/protobuf/timestamp.proto";
 
 package go.micro.cs.service.upload;
 
 service Upload {
-  rpc WriteImage(stream Bytes) returns (stream StreamingResponse){}
+  rpc WriteBytes(stream Bytes) returns (stream StreamingResponse){}
   rpc FileDetail(FileMate)returns(FileMate){}
+  rpc FileChunk(ChunkRequest)returns(ChunkResponse){}//获取文件分块信息
+  rpc FileMerge(MergeRequest)returns(FileMate){}//合并文件
+  rpc FileChunkVerify(ChunkRequest)returns(ChunkResponse){}//确认上传分块文件是否符合缓存的数据
 }
-
-
 
 message Bytes {
   bytes content = 1;
@@ -25,10 +26,31 @@ message FileMate {
   int64 created_at = 6;
   int64 updated_at = 7;
   int64 deleted_at = 8;
-  //  google.protobuf.Timestamp created_at = 6;
-  //  google.protobuf.Timestamp updated_at = 7;
-  //  google.protobuf.Timestamp deleted_at = 8
 }
+
+message ChunkRequest{
+  string filesha256 = 1;
+  int64 size = 2;
+  int64 user_id = 3;//可以从ctx获取id
+  string file_name = 4;
+  string upload_id = 5;
+  int64 index = 6;
+}
+
+message ChunkResponse{
+  string filesha256 = 1;
+  int64 size = 2;
+  string upload_id = 3;
+  int64 chunk_size = 4;
+  int64 chunk_count = 5;
+  string file_name = 6;
+}
+
+message MergeRequest{
+  string upload_id = 1;
+  int64 user_id = 2;//可以从ctx获取id
+}
+
 message DeletedAt{
   int64 deleted_at = 1;
 }
