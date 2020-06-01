@@ -53,10 +53,10 @@ func (e *Upload) FileMerge(ctx context.Context, request *uploadPb.MergeRequest, 
 			return err
 		}
 	}
-
-	if err = uploadService.
+	var name, location string
+	if location, name, err = uploadService.
 		MergeFile(
-			fmt.Sprintf("/%d/%s/%s",
+			fmt.Sprintf("%d/%s/%s",
 				request.UserId, request.UploadId, chunk.FileName),
 			chunk.Filesha256,
 		); err != nil {
@@ -66,7 +66,12 @@ func (e *Upload) FileMerge(ctx context.Context, request *uploadPb.MergeRequest, 
 
 	//// TODO 合并之后返回 对应的文件路径等文件信息
 	//uploadService.MergeFile()
-	return nil
+	//mate.Filesha256
+	mate.Location = location
+	mate.Filesha256 = chunk.Filesha256
+	mate.Size = chunk.Size
+	mate.Filename = name
+	return uploadService.WriteDB(db.DB(), mate)
 }
 
 func (e *Upload) FileChunkVerify(ctx context.Context, request *uploadPb.ChunkRequest, response *uploadPb.ChunkResponse) error {

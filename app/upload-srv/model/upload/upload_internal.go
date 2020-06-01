@@ -23,7 +23,6 @@ func (s *service) staticPath() string {
 
 // detailFileMate
 func (s *service) detailFileMate(db *gorm.DB, info *uploadPb.FileMate) error {
-
 	prepare, err := db.DB().Prepare("select * from `cs`.`file_mate` where `filesha256` = ? limit 1")
 	if err != nil {
 		return errors.WithStack(err)
@@ -33,7 +32,6 @@ func (s *service) detailFileMate(db *gorm.DB, info *uploadPb.FileMate) error {
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	//rows.
 	for rows.Next() {
 		err = rows.Scan(
 			&info.Id,

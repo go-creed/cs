@@ -46,7 +46,7 @@ func AuthWrapper(authFunc AuthFunc) gin.HandlerFunc {
 			return
 		}
 
-		if sess.Values["valid"] != nil || sess.Values["userId"].(int64) == 0 {
+		if sess.Values["userId"] == nil || sess.Values["userId"].(int64) == 0 {
 			ServerError(ctx, Response{
 				Error: err,
 			})

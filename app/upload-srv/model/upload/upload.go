@@ -3,14 +3,12 @@ package upload
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 
 	"github.com/jinzhu/gorm"
-	"github.com/prometheus/common/log"
 
 	uploadSrv "cs/app/upload-srv/proto/upload"
 	"cs/public/util"
@@ -48,24 +46,23 @@ func (s *service) Hash(file *os.File) (hashName string, err error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-func (s *service) MergeFile(fileName string, filesha256 string) error {
-	pwd := s.staticPath()
-	path := pwd + fileName
-	src, file := filepath.Split(path)
+func (s *service) MergeFile(fileName string, filesha256 string) (src string, file string, err error) {
+	var (
+		pwd        = s.staticPath()
+		path       = pwd + fileName
+		verifyFile bool
+	)
+	src, file = filepath.Split(path)
 	dest := src + "../" + file
-	cmd := fmt.Sprintf("cd %s && ls | sort -n | xargs cat > %s", src, dest)
-	log.Infof("[Upload][MergeFile]当前命令行参数:%s", cmd)
-	_, err := util.ExecLinuxShell(cmd)
-	if err != nil {
-		return err
+	if _, err = util.MergeFile(src, dest); err != nil {
+		return
 	}
-	if verifyFile, err := util.VerifyFile(filesha256, dest); err != nil {
-		return err
-	} else if !verifyFile {
-		return errors.New("[Upload][MergeFile]文件比对失败")
+	if verifyFile, err = util.VerifyFile(filesha256, dest); err != nil || !verifyFile {
+		return
 	}
-	os.RemoveAll(src)
-	return nil
+	_ = os.RemoveAll(src)
+	src, file = filepath.Split(dest)
+	return src, file, nil
 }
 
 func (s *service) CreateFile(path string) (*os.File, string, error) {
@@ -109,5 +106,5 @@ type Service interface {
 	Hash(file *os.File) (string, error)                                          //Hash
 	WriteDB(db *gorm.DB, data *uploadSrv.FileMate) error                         //写入db文件
 	FileDetail(db *gorm.DB, data *uploadSrv.FileMate, condition ...string) error //获取文件详情
-	MergeFile(fileName string, filesha256 string) error
+	MergeFile(fileName string, filesha256 string) (string, string, error)
 }
