@@ -23,7 +23,7 @@ func main() {
 	)
 	// create new web service
 	service := web.NewService(
-		web.Name(_const.UploadWeb),
+		web.Name(_const.UserWeb),
 		web.Version("latest"),
 		web.Registry(etcdRegistry),
 		web.Address("127.0.0.1:12003"),
@@ -48,11 +48,6 @@ func main() {
 		auth.GET("/detail", handler.Detail)
 	}
 	service.Handle("/", engine)
-	// register html gin-middleware
-	//service.Handle("/", http.FileServer(http.Dir("html")))
-
-	// register call gin-middleware
-	//service.HandleFunc("/user/call", gin-middleware.UserCall)
 
 	// run service
 	if err := service.Run(); err != nil {
