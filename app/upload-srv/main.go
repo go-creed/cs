@@ -8,6 +8,7 @@ import (
 	upload "cs/app/upload-srv/proto/upload"
 	"cs/plugin/rd"
 	"cs/plugin/db"
+	"cs/public/conf"
 	_const "cs/public/const"
 
 	"github.com/micro/cli/v2"
@@ -34,6 +35,7 @@ func main() {
 	// Initialise service
 	service.Init(
 		micro.Action(func(c *cli.Context) error {
+			conf.Init(c)
 			// init db
 			db.Init()
 			// init redis

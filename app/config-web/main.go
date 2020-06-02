@@ -29,13 +29,14 @@ func main() {
 	); err != nil {
 		log.Fatal(err)
 	}
-
+	//etcd listening
 	// register call handler
 	engine := gin.Default()
 	config := engine.Group("/config")
 	{
 		config.GET("/all")
 		config.PUT("/etcd", handler.C)
+		config.GET("/etcd", handler.Get)
 	}
 	service.Handle("/", engine)
 	// run service

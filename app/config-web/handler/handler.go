@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/gin-gonic/gin"
 	log "github.com/micro/go-micro/v2/logger"
 
+	"cs/plugin/db"
 	"cs/public/conf"
 )
 
@@ -24,7 +26,23 @@ func Init() {
 		log.Fatal(err)
 	}
 }
+func Get(ctx *gin.Context) {
+	cfg := &conf.MysqlConfig{}
+	err := conf.C().Get("mysql", cfg)
+	if err != nil {
+		log.Error(err)
+	}
+	fmt.Println(cfg)
+}
 
 func C(ctx *gin.Context) {
+	config := db.MysqlConfig{
+		User:     "root",
+		Password: "root",
+		Addr:     "localhost:3306",
+		DbName:   "cs",
+		LogMode:  true,
+	}
+	conf.C().Set("mysql", config)
 
 }
