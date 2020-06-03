@@ -1,5 +1,6 @@
-# User Service
+# User Web
 
-This is the User service
+## This is the User web
 
-Provide web services to manage user information
+Provide user management functions
+
