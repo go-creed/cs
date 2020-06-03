@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	path = "/app/upload-srv/static/file/"
+	path = "/conf/upload-srv/static/file/"
 )
 
 // get static's path
