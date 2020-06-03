@@ -44,10 +44,10 @@ func main() {
 
 	// New Service
 	service := micro.NewService(
-		micro.Name(conf.Config().Name),
-		micro.Version(conf.Config().Version),
+		micro.Name(conf.App().Name),
+		micro.Version(conf.App().Version),
 		micro.Registry(etcdRegistry),
-		micro.Address(conf.Config().Address),
+		micro.Address(conf.App().Address),
 	)
 
 	// Initialise service

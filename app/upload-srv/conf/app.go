@@ -26,6 +26,6 @@ func Init() {
 	log.Infof("APP【%s】 configuration of current service is %+v", _const.AuthSrv, app)
 }
 
-func Config() appConfig {
+func App() appConfig {
 	return app
 }

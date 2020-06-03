@@ -41,10 +41,10 @@ func main() {
 	)
 	// create new web service
 	service := web.NewService(
-		web.Name(conf.Config().Name),
-		web.Version(conf.Config().Version),
+		web.Name(conf.App().Name),
+		web.Version(conf.App().Version),
 		web.Registry(etcdRegistry),
-		web.Address(conf.Config().Address),
+		web.Address(conf.App().Address),
 	)
 
 	// initialise service
