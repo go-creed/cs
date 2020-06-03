@@ -56,7 +56,7 @@ func main() {
 	); err != nil {
 		log.Fatal(err)
 	}
-	engine := gin.New()
+	engine := gin.Default()
 	gin.Default()
 	// register gin gin-middleware
 	engine.POST("/login", handler.Login)

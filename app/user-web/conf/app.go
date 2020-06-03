@@ -20,7 +20,7 @@ var (
 )
 
 func Init() {
-	if err = c.Get(_const.UserSrv, &app); err != nil {
+	if err = c.Get(_const.UserWeb, &app); err != nil {
 		log.Fatal(err)
 	}
 	log.Infof("APP【%s】 configuration of current service is %+v", _const.AuthSrv, app)

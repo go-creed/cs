@@ -55,7 +55,7 @@ func main() {
 	); err != nil {
 		log.Fatal(err)
 	}
-	engine := gin.New()
+	engine := gin.Default()
 
 	file := engine.Group("/file").
 		Use(middleware.AuthWrapper(handler.Auth()))

@@ -10,32 +10,71 @@ import (
 	"testing"
 
 	"github.com/imroc/req"
+
+	uploadPb "cs/app/upload-srv/proto/upload"
+	"cs/public/util"
 )
 
-func TestFile(t *testing.T) {
-	//base := filepath.Base("Users/gre/Downloads/Firefox-latest.dmg")
-	//fmt.Println(base)
-	split, file := filepath.Split("Users/gre/Downloads/Firefox-latest.dmg")
-	fmt.Println(split, file)
-
-}
 func TestFileUpload(t *testing.T) {
+
 	var (
-		request = req.New()
-		_url    = "http://localhost:12001/file/upload"
+		request     = req.New()
+		_url        = "http://localhost:12001/file/upload"
+		_url_login  = "http://localhost:12003/login"
+		_file_chunk = "http://localhost:12001/file/chunk"
+		_file_merge = "http://localhost:12001/file/merge"
+		err         error
+		fileName    string
+		filePath    = "/Users/gre/Downloads/go1.14.2.darwin-amd64.pkg"
 	)
-	header := req.Header{
-		"Cookie":
-		"remember-me-token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVc2VySWQiOjYsIlVzZXJOYW1lIjoiemciLCJleHAiOjE1OTE1ODQ0NTB9.KjlE-gvTwjI7GACNBlXscy6Y9oUnvTRUkCpB7VYDSxQ;" +
-			"session-x-9f9d0332-db92-42b6-a952-62c11186b787=MTU5MDk3OTY1MHxEdi1CQkFFQ180SUFBUkFCRUFBQVBfLUNBQUlHYzNSeWFXNW5EQW9BQ0hWelpYSk9ZVzFsQm5OMGNtbHVad3dFQUFKNlp3WnpkSEpwYm1jTUNBQUdkWE5sY2tsa0JXbHVkRFkwQkFJQURBPT18fqkk9VMO3QaRjOQemKR3GArQh3xtuIWvWz9gVFVU7dE=; Path=/; Domain=localhost; Expires=Wed, 01 Jul 2020 02:47:30 GMT;",
+	//登录账号，获取cookies
+	loginParams := req.Param{
+		"user_name": "zg",
+		"password":  "a11111",
 	}
-	open, err := os.Open("/Users/gre/Downloads/Firefox-latest.dmg")
+	post, err := request.Post(_url_login, loginParams)
+	cookies := post.Response().Cookies()
+	fmt.Println("cookies:", cookies)
+
+	sha256, err := util.Sha256(filePath)
 	if err != nil {
 		t.Fatal(err)
-		return
+	}
+	fmt.Println("filesha_256:", sha256)
+
+	_, fileName = filepath.Split(filePath)
+	fmt.Println("file_name:", fileName)
+
+	size, err := util.FileSize(filePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println("file_size:", size)
+
+	get, err := request.Get(_file_chunk, req.Param{
+		"file_size":   size,
+		"filesha_256": sha256,
+		"file_name":   fileName,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(fmt.Println(get.String()))
+
+	var toJson struct {
+		Data uploadPb.ChunkResponse `json:"data"`
+	}
+	if err = get.ToJSON(&toJson); err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(toJson.Data)
+
+	open, err := os.Open(filePath)
+	if err != nil {
+		t.Fatal(err)
 	}
 	defer open.Close()
-	buffer := make([]byte, 5242880)
+	buffer := make([]byte, toJson.Data.ChunkSize)
 	var capSize int64
 	var i int
 	for {
@@ -44,29 +83,37 @@ func TestFileUpload(t *testing.T) {
 			return
 		} else if err == nil || err == io.EOF {
 			param := req.Param{
-				"upload_id":  "CHUNK_6_16144ef60a40d8b8",
-				"filesha256": "31ba830fb9de2ef49c0f803dab6bdebba1b8f526eb85e6a79a1305ddc7c2e54a",
+				"upload_id":  toJson.Data.UploadId,
+				"filesha256": toJson.Data.Filesha256,
 				"index":      i + 1,
-				"file_name":  "Firefox-latest.dmg",
+				"file_name":  toJson.Data.FileName,
 			}
 			capSize += int64(n)
-			if post, err2 := request.Post(_url, param, header, buffer[:n]); err2 != nil {
+
+			if post, err2 := request.Post(_url, param, buffer[:n]); err2 != nil {
 				t.Fatal(err)
-				break
+				return
+			} else if post.Response().StatusCode >= 300 {
+				fmt.Println(post.String())
+				return
 			} else {
-				fmt.Println(post.Response())
+				fmt.Println(post.String())
 			}
 			if err == io.EOF {
 				break
 			}
 			i++
-			//return
 		} else {
 			break
 		}
 	}
-	//}
-
+	resp, err := request.Post(_file_merge, request, req.Param{
+		"upload_id": toJson.Data.UploadId,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(resp.String())
 }
 
 func TestCmd(t *testing.T) {
