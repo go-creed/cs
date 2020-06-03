@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -10,23 +11,40 @@ import (
 	"github.com/micro/go-micro/v2/registry/etcd"
 	"github.com/micro/go-micro/v2/web"
 
+	"cs/app/user-web/conf"
 	"cs/app/user-web/handler"
-	_const "cs/public/const"
+	"cs/public/config"
 	middleware "cs/public/gin-middleware"
 )
 
+var (
+	configCenter = *flag.String("cc", "127.0.0.1:2379", "")
+	etcdCfg      config.EtcdConfig
+)
+
+func initCfg() {
+	flag.Parse()
+	var err error
+	config.Init(configCenter, conf.Init)
+	etcdCfg, err = config.ETCD()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func main() {
+	initCfg()
 	//registry by etcd
 	etcdRegistry := etcd.NewRegistry(
-		registry.Addrs("127.0.0.1:2379"),
-		registry.Timeout(5*time.Second),
+		registry.Addrs(etcdCfg.Addrs),
+		registry.Timeout(time.Duration(etcdCfg.Timeout)),
 	)
 	// create new web service
 	service := web.NewService(
-		web.Name(_const.UploadWeb),
-		web.Version("latest"),
+		web.Name(conf.App().Name),
+		web.Version(conf.App().Version),
 		web.Registry(etcdRegistry),
-		web.Address("127.0.0.1:12003"),
+		web.Address(conf.App().Address),
 	)
 
 	// initialise service
@@ -48,11 +66,6 @@ func main() {
 		auth.GET("/detail", handler.Detail)
 	}
 	service.Handle("/", engine)
-	// register html gin-middleware
-	//service.Handle("/", http.FileServer(http.Dir("html")))
-
-	// register call gin-middleware
-	//service.HandleFunc("/user/call", gin-middleware.UserCall)
 
 	// run service
 	if err := service.Run(); err != nil {

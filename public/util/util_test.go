@@ -8,7 +8,7 @@ import (
 )
 
 func TestExecLinuxShell(t *testing.T) {
-	src := "/Users/gre/Go/micro/src/cs/app/upload-srv/static/file"
+	src := "/Users/gre/Go/micro/src/cs/conf/upload-srv/static/file"
 	src2 := src + "/1.dmg"
 	cmd := fmt.Sprintf("cd %s && ls | sort -n | xargs cat > %s", src, src2)
 	fmt.Println(cmd)

@@ -20,9 +20,15 @@ func TestFile(t *testing.T) {
 
 }
 func TestFileUpload(t *testing.T) {
-	//dir := filepath.Dir("Users/gre/Downloads/Firefox-latest.dmg")
-	//fmt.Println(dir)
-	//return
+	var (
+		request = req.New()
+		_url    = "http://localhost:12001/file/upload"
+	)
+	header := req.Header{
+		"Cookie":
+		"remember-me-token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVc2VySWQiOjYsIlVzZXJOYW1lIjoiemciLCJleHAiOjE1OTE1ODQ0NTB9.KjlE-gvTwjI7GACNBlXscy6Y9oUnvTRUkCpB7VYDSxQ;" +
+			"session-x-9f9d0332-db92-42b6-a952-62c11186b787=MTU5MDk3OTY1MHxEdi1CQkFFQ180SUFBUkFCRUFBQVBfLUNBQUlHYzNSeWFXNW5EQW9BQ0hWelpYSk9ZVzFsQm5OMGNtbHVad3dFQUFKNlp3WnpkSEpwYm1jTUNBQUdkWE5sY2tsa0JXbHVkRFkwQkFJQURBPT18fqkk9VMO3QaRjOQemKR3GArQh3xtuIWvWz9gVFVU7dE=; Path=/; Domain=localhost; Expires=Wed, 01 Jul 2020 02:47:30 GMT;",
+	}
 	open, err := os.Open("/Users/gre/Downloads/Firefox-latest.dmg")
 	if err != nil {
 		t.Fatal(err)
@@ -38,13 +44,13 @@ func TestFileUpload(t *testing.T) {
 			return
 		} else if err == nil || err == io.EOF {
 			param := req.Param{
-				"upload_id":  "CHUNK_0_16137a0ff0de6d601",
+				"upload_id":  "CHUNK_6_16144ef60a40d8b8",
 				"filesha256": "31ba830fb9de2ef49c0f803dab6bdebba1b8f526eb85e6a79a1305ddc7c2e54a",
 				"index":      i + 1,
 				"file_name":  "Firefox-latest.dmg",
 			}
 			capSize += int64(n)
-			if post, err2 := req.Post("http://localhost:12001/file/upload", param, buffer[:n]); err2 != nil {
+			if post, err2 := request.Post(_url, param, header, buffer[:n]); err2 != nil {
 				t.Fatal(err)
 				break
 			} else {
@@ -54,7 +60,7 @@ func TestFileUpload(t *testing.T) {
 				break
 			}
 			i++
-			return
+			//return
 		} else {
 			break
 		}
@@ -64,8 +70,8 @@ func TestFileUpload(t *testing.T) {
 }
 
 func TestCmd(t *testing.T) {
-	var srcPath = "/Users/gre/Go/micro/src/cs/app/upload-srv/static/file"
-	var destPath = "/Users/gre/Go/micro/src/cs/app/upload-srv/static/add/1.dmg"
+	var srcPath = "/Users/gre/Go/micro/src/cs/conf/upload-srv/static/file"
+	var destPath = "/Users/gre/Go/micro/src/cs/conf/upload-srv/static/add/1.dmg"
 	cmd := fmt.Sprintf("cd %s && ls | sort -n | xargs cat > %s", srcPath, destPath)
 	cmd = fmt.Sprintf("cd %s && ls -tr | xargs cat > %s", srcPath, destPath)
 	fmt.Println(cmd)

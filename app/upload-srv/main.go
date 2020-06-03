@@ -1,23 +1,42 @@
 package main
 
 import (
+	"flag"
 	"time"
-
-	"cs/app/upload-srv/handler"
-	"cs/app/upload-srv/model"
-	upload "cs/app/upload-srv/proto/upload"
-	"cs/plugin/rd"
-	"cs/plugin/db"
-	_const "cs/public/const"
 
 	"github.com/micro/cli/v2"
 	"github.com/micro/go-micro/v2"
 	log "github.com/micro/go-micro/v2/logger"
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/registry/etcd"
+
+	"cs/app/upload-srv/conf"
+	"cs/app/upload-srv/handler"
+	"cs/app/upload-srv/model"
+	upload "cs/app/upload-srv/proto/upload"
+	"cs/plugin/db"
+	"cs/plugin/rd"
+	"cs/public/config"
 )
 
+var (
+	configCenter = *flag.String("cc", "127.0.0.1:2379", "")
+	etcdCfg      config.EtcdConfig
+)
+
+func initCfg() {
+	flag.Parse()
+	var err error
+	config.Init(configCenter, conf.Init)
+	etcdCfg, err = config.ETCD()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func main() {
+	// Init Config
+	initCfg()
 	// Registry etcd
 	etcdRegistry := etcd.NewRegistry(
 		registry.Timeout(5*time.Second),
@@ -25,10 +44,10 @@ func main() {
 	)
 	// New Service
 	service := micro.NewService(
-		micro.Name(_const.UploadSrv),
-		micro.Version("latest"),
+		micro.Name(conf.App().Name),
+		micro.Version(conf.App().Version),
 		micro.Registry(etcdRegistry),
-		micro.Address("127.0.0.1:12000"),
+		micro.Address(conf.App().Address),
 	)
 
 	// Initialise service
@@ -48,9 +67,6 @@ func main() {
 
 	// Register Handler
 	upload.RegisterUploadHandler(service.Server(), new(handler.Upload))
-
-	// Register Struct as Subscriber
-	//micro.RegisterSubscriber(UploadSrv, service.Server(), new(subscriber.Upload))
 
 	// Run service
 	if err := service.Run(); err != nil {

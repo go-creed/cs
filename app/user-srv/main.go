@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"time"
 
 	"github.com/micro/cli/v2"
@@ -9,29 +10,50 @@ import (
 	"github.com/micro/go-micro/v2/registry"
 	"github.com/micro/go-micro/v2/registry/etcd"
 
+	"cs/app/user-srv/conf"
 	"cs/app/user-srv/handler"
 	"cs/app/user-srv/model"
 	user "cs/app/user-srv/proto/user"
 	"cs/plugin/db"
+	"cs/public/config"
 )
 
+var (
+	configCenter = *flag.String("cc", "127.0.0.1:2379", "")
+	etcdCfg      config.EtcdConfig
+)
+
+func initCfg() {
+	flag.Parse()
+	var err error
+	config.Init(configCenter, conf.Init)
+	etcdCfg, err = config.ETCD()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func main() {
+	// Init Config
+	initCfg()
 	// Registry by etcd
 	etcdRegistry := etcd.NewRegistry(
-		registry.Addrs("127.0.0.1:2379"),
-		registry.Timeout(5*time.Second),
+		registry.Addrs(etcdCfg.Addrs),
+		registry.Timeout(time.Duration(etcdCfg.Timeout)),
 	)
+
 	// New Service
 	service := micro.NewService(
-		micro.Name("go.micro.cs.service.user"),
-		micro.Version("latest"),
+		micro.Name(conf.App().Name),
+		micro.Version(conf.App().Version),
 		micro.Registry(etcdRegistry),
-		micro.Address("127.0.0.1:12002"),
+		micro.Address(conf.App().Address),
 	)
 
 	// Initialise service
 	service.Init(
-		micro.Action(func(context *cli.Context) error {
+		micro.Flags(&cli.StringSliceFlag{Name: "cc"}),
+		micro.Action(func(c *cli.Context) error {
 			// Init Mysql
 			db.Init()
 			// Init Model
@@ -44,9 +66,6 @@ func main() {
 
 	// Register Handler
 	user.RegisterUserHandler(service.Server(), new(handler.User))
-
-	// Register Struct as Subscriber
-	//micro.RegisterSubscriber("go.micro.cs.service.user", service.Server(), new(subscriber.User))
 
 	// Run service
 	if err := service.Run(); err != nil {

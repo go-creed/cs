@@ -150,6 +150,7 @@ func FileUpload(ctx *middleware.MicroContext) {
 		UploadId: params.UploadId,
 		Index:    params.Index,
 		Size:     legitimate.Size,
+		UserId:   ctx.UserId,
 	}); err != nil {
 		log.Error("[Upload][File]:远程创建文件失败 %s", err.Error())
 		middleware.ServerError(ctx, middleware.Response{Error: ecode.New(ecode.ErrGrpcServer, err)})
