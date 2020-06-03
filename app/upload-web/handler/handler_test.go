@@ -70,8 +70,8 @@ func TestFileUpload(t *testing.T) {
 }
 
 func TestCmd(t *testing.T) {
-	var srcPath = "/Users/gre/Go/micro/src/cs/app/upload-srv/static/file"
-	var destPath = "/Users/gre/Go/micro/src/cs/app/upload-srv/static/add/1.dmg"
+	var srcPath = "/Users/gre/Go/micro/src/cs/conf/upload-srv/static/file"
+	var destPath = "/Users/gre/Go/micro/src/cs/conf/upload-srv/static/add/1.dmg"
 	cmd := fmt.Sprintf("cd %s && ls | sort -n | xargs cat > %s", srcPath, destPath)
 	cmd = fmt.Sprintf("cd %s && ls -tr | xargs cat > %s", srcPath, destPath)
 	fmt.Println(cmd)

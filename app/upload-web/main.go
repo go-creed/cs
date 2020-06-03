@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -10,23 +11,40 @@ import (
 	"github.com/micro/go-micro/v2/registry/etcd"
 	"github.com/micro/go-micro/v2/web"
 
+	"cs/app/upload-web/conf"
 	"cs/app/upload-web/handler"
-	_const "cs/public/const"
+	"cs/public/config"
 	"cs/public/gin-middleware"
 )
 
+var (
+	configCenter = *flag.String("cc", "127.0.0.1:2379", "")
+	etcdCfg      config.EtcdConfig
+)
+
+func initCfg() {
+	flag.Parse()
+	var err error
+	config.Init(configCenter, conf.Init)
+	etcdCfg, err = config.ETCD()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
 func main() {
+	// Init Config
+	initCfg()
 	// registry by etcd
 	etcdRegistry := etcd.NewRegistry(
-		registry.Addrs("127.0.0.1:2379"),
-		registry.Timeout(5*time.Second),
+		registry.Addrs(etcdCfg.Addrs),
+		registry.Timeout(time.Duration(etcdCfg.Timeout)),
 	)
 	// create new web service
 	service := web.NewService(
-		web.Name(_const.UploadWeb),
-		web.Version("latest"),
+		web.Name(conf.Config().Name),
+		web.Version(conf.Config().Version),
 		web.Registry(etcdRegistry),
-		web.Address("127.0.0.1:12001"),
+		web.Address(conf.Config().Address),
 	)
 
 	// initialise service
