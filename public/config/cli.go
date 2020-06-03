@@ -1,8 +1,7 @@
-package conf
+package config
 
 import (
 	"github.com/coreos/etcd/clientv3"
-	"github.com/micro/cli/v2"
 	configV2 "github.com/micro/go-micro/v2/config"
 	"github.com/micro/go-micro/v2/config/source/etcd"
 	log "github.com/micro/go-micro/v2/logger"
@@ -17,16 +16,17 @@ var (
 	config          = &configurator{}
 )
 
-func Init(c *cli.Context) {
+type UpdateInit func()
+
+func Init(registryAddress string, update ...UpdateInit) {
 	var err error
-	registryAddress = c.String("registry_address")
 	if registryAddress == "" {
 		registryAddress = "127.0.0.1:2379"
 	}
 	log.Infof("当前的 etcd %s", registryAddress)
 	etcdSource := etcd.NewSource(
 		etcd.WithAddress(registryAddress),
-		etcd.WithPrefix("/cs/app"),
+		etcd.WithPrefix(prefix),
 	)
 	config.conf, err = configV2.NewConfig()
 	if err != nil {
@@ -47,6 +47,9 @@ func Init(c *cli.Context) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	for _, i := range update {
+		i()
+	}
 	go func() {
 		for {
 			next, err := watch.Next()
@@ -55,6 +58,9 @@ func Init(c *cli.Context) {
 				break
 			}
 			log.Infof("Watch changes : %v", string(next.Bytes()))
+			for _, i := range update {
+				i()
+			}
 		}
 	}()
 }

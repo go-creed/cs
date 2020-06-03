@@ -1,4 +1,4 @@
-package conf
+package config
 
 import (
 	"context"
@@ -9,6 +9,8 @@ import (
 	"github.com/coreos/etcd/clientv3"
 	configV2 "github.com/micro/go-micro/v2/config"
 	log "github.com/micro/go-micro/v2/logger"
+
+	_const "cs/public/const"
 )
 
 type Configurator interface {
@@ -55,43 +57,8 @@ func C() Configurator {
 	return config
 }
 
-type Config struct {
-	Apps map[string]interface{} `json:"apps"`
+func ETCD() (etcd EtcdConfig, err error) {
+	err = config.Get(_const.Etcd, &etcd)
+	return etcd, err
 }
 
-type AppConfig struct {
-	Name    string `json:"name"`
-	Address string `json:"address"`
-	Port    string `json:"port"`
-	Version string `json:"version"`
-}
-
-type RedisConfig struct {
-	Addr     string `json:"addr"`
-	Password string `json:"password"`
-	Num      int    `json:"num"`
-}
-type EtcdConfig struct {
-	Addr string `json:"addr"` // including ip and port
-}
-
-type MysqlConfig struct {
-	User     string `json:"user"`
-	Password string `json:"password"`
-	Addr     string `json:"addr"`     // including ip and port
-	LogMode  bool   `json:"log_mode"` // 是否开启日志
-}
-
-func (m MysqlConfig) String() string {
-	marshal, _ := json.Marshal(m)
-	return string(marshal)
-}
-func (e EtcdConfig) String() string {
-	marshal, _ := json.Marshal(e)
-	return string(marshal)
-}
-
-func (c Config) String() string {
-	marshal, _ := json.Marshal(c)
-	return string(marshal)
-}

@@ -6,7 +6,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 
-	"cs/public/conf"
+	"cs/public/config"
 )
 
 type MysqlConfig struct {
@@ -19,7 +19,7 @@ type MysqlConfig struct {
 
 func initMysql() {
 	var (
-		c   = conf.C()
+		c   = config.C()
 		cfg = &MysqlConfig{}
 		err error
 	)

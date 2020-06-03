@@ -8,4 +8,6 @@ const (
 	UserWeb       = "go.micro.cs.web.user"
 	ConfigWeb     = "go.micro.cs.web.config"
 	VersionLatest = "latest"
+	Etcd          = "etcd"
+	Redis         = "redis"
 )
