@@ -46,7 +46,7 @@ make build
 
 Run the service
 ```
-./config-web
+go run main.go --registry=etcd --registry_address=127.0.0.1:2379 --cc=127.0.0.1:2379
 ```
 
 Build a docker image
