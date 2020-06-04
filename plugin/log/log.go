@@ -8,11 +8,10 @@ import (
 
 var (
 	once sync.Once
-	err  error
 )
 
-func Init() {
+func Init(appName string) {
 	once.Do(func() {
-		initLogger()
+		initLogger(appName)
 	})
 }

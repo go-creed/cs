@@ -2,28 +2,31 @@ package log
 
 import (
 	"testing"
-	"time"
 
+	"github.com/elastic/go-elasticsearch/v6"
+	//"github.com/elastic/go-elasticsearch/v6/esapi"
 	"github.com/micro/go-micro/v2/logger"
 	logM "github.com/micro/go-plugins/logger/logrus/v2"
 	"github.com/sirupsen/logrus"
 )
 
+
 func TestName(t *testing.T) {
-	customFormatter := new(logrus.TextFormatter)
-	customFormatter.TimestampFormat = "2006-01-02 15:04:05"
-	customFormatter.FullTimestamp = true
-	l := logrus.New()
-	l.SetFormatter(customFormatter)
-	l.WithTime(time.Now()).Info("Hello Walrus")
-
-
-	l2 := logM.NewLogger(logM.WithTextTextFormatter(customFormatter))
-
-
-	logger.DefaultLogger = l2
-	logger.Warn(123)
-	logger.Fields(map[string]interface{}{})
-	logger.Log(logger.InfoLevel, "testing: Info")
-	logger.Logf(logger.InfoLevel, "testing: %s", "Infof")
+	hooks := logrus.LevelHooks{}
+	e := &EsHook{}
+	var err error
+	e.client, err = elasticsearch.NewDefaultClient()
+	e.Decode = &general{}
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = e.client.Info(); err != nil {
+		t.Fatal(err)
+	}
+	hooks.Add(e)
+	logger.DefaultLogger = logM.NewLogger(
+		logM.WithTextTextFormatter(myTextFormatter()),
+		logM.WithLevelHooks(hooks),
+	)
+	logger.Warn()
 }
