@@ -3,14 +3,17 @@ package conf
 import (
 	log "github.com/micro/go-micro/v2/logger"
 
+	cLog "cs/plugin/log"
+
 	"cs/public/config"
 	_const "cs/public/const"
 )
 
 type appConfig struct {
-	Name    string `json:"name"`
-	Address string `json:"address"`
-	Version string `json:"version"`
+	Name    string       `json:"name"`
+	Address string       `json:"address"`
+	Version string       `json:"version"`
+	Log     cLog.Options `json:"log"`
 }
 
 var (
