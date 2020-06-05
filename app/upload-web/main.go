@@ -13,6 +13,7 @@ import (
 
 	"cs/app/upload-web/conf"
 	"cs/app/upload-web/handler"
+	cLog "cs/plugin/log"
 	"cs/public/config"
 	"cs/public/gin-middleware"
 )
@@ -30,6 +31,9 @@ func initCfg() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	cLog.Init(
+		cLog.SetEsIndex(conf.App().Log.EsIndex),
+	)
 }
 func main() {
 	// Init Config

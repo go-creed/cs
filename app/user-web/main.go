@@ -11,6 +11,8 @@ import (
 	"github.com/micro/go-micro/v2/registry/etcd"
 	"github.com/micro/go-micro/v2/web"
 
+	nLog "cs/plugin/log"
+
 	"cs/app/user-web/conf"
 	"cs/app/user-web/handler"
 	"cs/public/config"
@@ -25,11 +27,17 @@ var (
 func initCfg() {
 	flag.Parse()
 	var err error
+	// init app
 	config.Init(configCenter, conf.Init)
+	// init etcd
 	etcdCfg, err = config.ETCD()
 	if err != nil {
 		log.Fatal(err)
 	}
+	// init log
+	nLog.Init(
+		nLog.SetEsIndex(conf.App().Log.EsIndex),
+	)
 }
 
 func main() {
@@ -56,8 +64,9 @@ func main() {
 	); err != nil {
 		log.Fatal(err)
 	}
-	engine := gin.Default()
-	gin.Default()
+	router := gin.New()
+
+	engine := router.Use(LogWrapper())
 	// register gin gin-middleware
 	engine.POST("/login", handler.Login)
 	engine.POST("/register", handler.Register)
@@ -65,10 +74,17 @@ func main() {
 	{
 		auth.GET("/detail", handler.Detail)
 	}
-	service.Handle("/", engine)
+	service.Handle("/", router)
 
 	// run service
 	if err := service.Run(); err != nil {
 		log.Fatal(err)
+	}
+}
+
+func LogWrapper() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		//log.Debug(ctx.Request.Host + ctx.Request.URL.Path)
+		ctx.Next()
 	}
 }

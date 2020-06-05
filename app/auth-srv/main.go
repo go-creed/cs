@@ -14,6 +14,7 @@ import (
 	"cs/app/auth-srv/handler"
 	"cs/app/auth-srv/model"
 	auth "cs/app/auth-srv/proto/auth"
+	cLog "cs/plugin/log"
 	"cs/plugin/rd"
 	"cs/public/config"
 )
@@ -31,6 +32,9 @@ func initCfg() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	cLog.Init(
+		cLog.SetEsIndex(conf.App().Log.EsIndex),
+	)
 }
 
 func main() {

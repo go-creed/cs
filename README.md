@@ -28,7 +28,7 @@ etcd配置中心
 
 elastic数据存储中心，kibana数据查看面板
 
-![image-20200605110122036](./doc/image/image-20200605110122036.png)
+![image-20200605110122036](doc/image/日志效果.png)
 
 ## 熔断、降级、容错与健康检查
 

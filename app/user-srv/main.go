@@ -15,6 +15,7 @@ import (
 	"cs/app/user-srv/model"
 	user "cs/app/user-srv/proto/user"
 	"cs/plugin/db"
+	cLog "cs/plugin/log"
 	"cs/public/config"
 )
 
@@ -31,6 +32,9 @@ func initCfg() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	cLog.Init(
+		cLog.SetEsIndex(conf.App().Log.EsIndex),
+	)
 }
 
 func main() {
