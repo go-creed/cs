@@ -16,7 +16,6 @@ type EsHook struct {
 	Decode Reader
 }
 
-
 func (hook *EsHook) Fire(entry *logrus.Entry) error {
 	var (
 		err   error
@@ -26,7 +25,7 @@ func (hook *EsHook) Fire(entry *logrus.Entry) error {
 		fmt.Fprintf(os.Stderr, "Create index failure, %v", err)
 		return err
 	} else if index.IsError() {
-		fmt.Fprintf(os.Stderr, "Create index failure, %v", index.Body)
+		fmt.Fprintf(os.Stderr, "Create index failure, %d", index.StatusCode)
 		_ = index.Body.Close()
 		return errors.New(index.String())
 	}

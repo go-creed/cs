@@ -10,7 +10,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-
+func TestDefaultLogger(t *testing.T) {
+	//initDefaultLogger()
+	//logrus.SetLevel(logrus.DebugLevel)
+	//logrus.Debug(1)
+	newLogger := logger.NewLogger(logger.WithLevel(logger.DebugLevel))
+	logger.DefaultLogger = newLogger
+	//logger.WithLevel(logger.DebugLevel)
+	logger.Debug(123)
+	//k
+	//logger.Info("123")
+}
 func TestName(t *testing.T) {
 	hooks := logrus.LevelHooks{}
 	e := &EsHook{}
@@ -25,7 +35,7 @@ func TestName(t *testing.T) {
 	}
 	hooks.Add(e)
 	logger.DefaultLogger = logM.NewLogger(
-		logM.WithTextTextFormatter(myTextFormatter()),
+		//logM.WithTextTextFormatter(myTextFormatter()),
 		logM.WithLevelHooks(hooks),
 	)
 	logger.Warn()

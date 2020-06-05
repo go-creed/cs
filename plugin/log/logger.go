@@ -3,9 +3,9 @@ package log
 import (
 	"io"
 
-	"github.com/elastic/go-elasticsearch/v6"
 	"github.com/micro/go-micro/v2/logger"
 	logM "github.com/micro/go-plugins/logger/logrus/v2"
+
 	"github.com/sirupsen/logrus"
 
 	"cs/public/config"
@@ -15,51 +15,47 @@ type Reader interface {
 	Marshal(entry *logrus.Entry) io.Reader
 }
 
-type LogConfig struct {
-	EsAddr string `json:"es_addr"`
+type Logger interface {
+	Init(opts ...Option) error
+	Hook() logrus.LevelHooks
+	Formatter(entry *logrus.Entry) logrus.Formatter
 }
 
-var (
-	cfg = &LogConfig{}
-)
-
-func initLogger(appName string) {
+func initLogger(opts ...Option) {
 	var (
 		c   = config.C()
 		err error
+		opt Options
 	)
-	if err = c.Get("log", cfg); err != nil {
-		logger.Fatal(err)
+	if err = c.Get("log", &opt); err != nil {
+		logger.Error(err)
 	}
+	opts = append([]Option{SetOptions(opt)}, opts...)
+	initDefaultLogger(opts...)
+}
 
-	formatter := myTextFormatter()
-	hook := initEsHook(appName)
+func initDefaultLogger(opts ...Option) {
 
+	d := defaultLogger{}
+	d.Init(opts...)
+
+	// format
+	var formatterOption logger.Option
+	formatter := d.Formatter()
+	switch formatter.(type) {
+	case *logrus.TextFormatter:
+		formatterOption = logM.WithTextTextFormatter(formatter.(*logrus.TextFormatter))
+	case *logrus.JSONFormatter:
+		formatterOption = logM.WithTextTextFormatter(formatter.(*logrus.TextFormatter))
+	}
+	// hook
+	hook := logM.WithLevelHooks(d.Hook())
+	// level
+	level := logger.WithLevel(logger.DebugLevel)
+	// new logger
 	logger.DefaultLogger = logM.NewLogger(
-		logM.WithTextTextFormatter(formatter),
-		logM.WithLevelHooks(hook),
+		formatterOption,
+		hook,
+		level,
 	)
-}
-
-func initEsHook(appName string) logrus.LevelHooks {
-	var err error
-	esHook := &EsHook{}
-	esHook.client, err = elasticsearch.NewClient(elasticsearch.Config{
-		Addresses: []string{cfg.EsAddr},
-	})
-	if err != nil {
-		logger.Fatal(err)
-	}
-	esHook.Decode = &general{}
-	esHook.Index = appName
-	hooks := logrus.LevelHooks{}
-	hooks.Add(esHook)
-	return hooks
-}
-
-func myTextFormatter() *logrus.TextFormatter {
-	customFormatter := new(logrus.TextFormatter)
-	customFormatter.TimestampFormat = "2006-01-02 15:04:05"
-	customFormatter.FullTimestamp = true
-	return customFormatter
 }
