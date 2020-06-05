@@ -4,15 +4,38 @@ import (
 	"bytes"
 	"fmt"
 	"os/exec"
+	"strconv"
+	"strings"
 )
 
-func VerifyFile(sha256 string, src string) (bool, error) {
-	cmd := fmt.Sprintf("shasum -a 256 %s", src)
+func FileSize(src string) (int64, error) {
+	cmd := fmt.Sprintf("ls -l %s | awk '{print $5}'", src)
 	shell, err := ExecLinuxShell(cmd)
+	if err != nil {
+		return 0, err
+	}
+	size, err := strconv.Atoi(strings.TrimSpace(shell))
+	if err != nil {
+		return 0, err
+	}
+	return int64(size), nil
+}
+
+func VerifyFile(sha256 string, src string) (bool, error) {
+	s, err := Sha256(src)
 	if err != nil {
 		return false, err
 	}
-	return shell[:64] == sha256, nil
+	return s == sha256, nil
+}
+
+func Sha256(src string) (string, error) {
+	cmd := fmt.Sprintf("shasum -a 256 %s", src)
+	shell, err := ExecLinuxShell(cmd)
+	if err != nil {
+		return "", err
+	}
+	return shell[:64], nil
 }
 
 func MergeFile(src, dest string) (string, error) {

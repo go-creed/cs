@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/micro/go-micro/v2/client"
+	log "github.com/micro/go-micro/v2/logger"
 
 	authPb "cs/app/auth-srv/proto/auth"
 	userPb "cs/app/user-srv/proto/user"
@@ -51,6 +52,8 @@ func Login(ctx *gin.Context) {
 	_ = sessionGin.Save(ctx.Request, ctx.Writer)
 
 	login.UserId = 0
+	
+	log.Infof("[Login] %v", login)
 	middleware.Success(ctx, middleware.Response{
 		Msg:  "Login Success",
 		Data: login,

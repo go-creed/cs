@@ -24,7 +24,7 @@ var (
 )
 
 const (
-	chunkSize = 5 * 1024 * 1024
+	chunkSize = 3 * 1024 * 1024
 )
 
 func Init() {

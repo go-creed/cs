@@ -15,6 +15,7 @@ import (
 	"cs/app/upload-srv/model"
 	upload "cs/app/upload-srv/proto/upload"
 	"cs/plugin/db"
+	cLog "cs/plugin/log"
 	"cs/plugin/rd"
 	"cs/public/config"
 )
@@ -32,6 +33,9 @@ func initCfg() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	cLog.Init(
+		cLog.SetEsIndex(conf.App().Log.EsIndex),
+	)
 }
 
 func main() {
