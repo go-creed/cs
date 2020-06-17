@@ -34,7 +34,7 @@
 
    效果：日志中间件，日志远程写入es
 
-   ![image-20200605110122036](https://img-blog.csdnimg.cn/20200617101928822.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80MjMyMjMwOQ==,size_16,color_FFFFFF,t_70)
+   ![日志效果.png](doc/image/日志效果.png)
 
 ## 熔断、降级、容错与健康检查
 
@@ -47,7 +47,7 @@
    效果：日志中间件，日志远程写入es
 
 
-   ![image-20200605110122036](https://img-blog.csdnimg.cn/20200617101928895.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80MjMyMjMwOQ==,size_16,color_FFFFFF,t_70)
+   ![链路追踪.jpg](doc/image/链路追踪.jpg)
 
 ## 容器化
 
