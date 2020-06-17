@@ -10,4 +10,5 @@ const (
 	VersionLatest = "latest"
 	Etcd          = "etcd"
 	Redis         = "redis"
+	Opentracing   = "opentracing"
 )

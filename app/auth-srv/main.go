@@ -16,6 +16,7 @@ import (
 	auth "cs/app/auth-srv/proto/auth"
 	cLog "cs/plugin/log"
 	"cs/plugin/rd"
+	"cs/plugin/trace"
 	"cs/public/config"
 )
 
@@ -35,6 +36,7 @@ func initCfg() {
 	cLog.Init(
 		cLog.SetEsIndex(conf.App().Log.EsIndex),
 	)
+	trace.Init(conf.App().Name)
 }
 
 func main() {
@@ -52,6 +54,7 @@ func main() {
 		micro.Version(conf.App().Version),
 		micro.Registry(etcdRegistry),
 		micro.Address(conf.App().Address),
+		micro.WrapHandler(trace.Wrapper()),
 	)
 
 	// Initialise service

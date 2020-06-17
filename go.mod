@@ -3,6 +3,7 @@ module cs
 go 1.13
 
 require (
+	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/coreos/etcd v3.3.18+incompatible
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/elastic/go-elasticsearch/v6 v6.8.5
@@ -19,6 +20,10 @@ require (
 	github.com/micro/cli/v2 v2.1.2
 	github.com/micro/go-micro/v2 v2.8.0
 	github.com/micro/go-plugins/logger/logrus/v2 v2.8.0
+	github.com/micro/go-plugins/wrapper/trace/opentracing/v2 v2.8.0
+	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.4.2
+	github.com/uber/jaeger-client-go v2.23.1+incompatible
+	github.com/uber/jaeger-lib v2.2.0+incompatible // indirect
 )
