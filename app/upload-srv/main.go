@@ -17,6 +17,7 @@ import (
 	"cs/plugin/db"
 	cLog "cs/plugin/log"
 	"cs/plugin/rd"
+	"cs/plugin/trace"
 	"cs/public/config"
 )
 
@@ -52,6 +53,7 @@ func main() {
 		micro.Version(conf.App().Version),
 		micro.Registry(etcdRegistry),
 		micro.Address(conf.App().Address),
+		micro.WrapHandler(trace.Wrapper()),
 	)
 
 	// Initialise service

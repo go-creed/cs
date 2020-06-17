@@ -17,7 +17,7 @@ import (
 var (
 	once        sync.Once
 	userService userMd.Service
-	userClient  authPb.AuthService
+	authService  authPb.AuthService
 )
 
 type User struct{}
@@ -41,7 +41,8 @@ func (u *User) Login(ctx context.Context, info *userPb.Request, response *userPb
 		return err
 	}
 	// 生成token
-	token, err := userClient.GenerateToken(ctx, &authPb.Request{
+	ctx = context.WithValue(ctx,"34","34")
+	token, err := authService.GenerateToken(ctx, &authPb.Request{
 		Id:       info.UserInfo.Id,
 		UserName: info.UserInfo.UserName,
 	})
@@ -65,6 +66,6 @@ func Init() {
 			log.Fatal("[Upload] Handler Init Failure , %s", err)
 			return
 		}
-		userClient = authPb.NewAuthService(_const.AuthSrv, client.DefaultClient)
+		authService = authPb.NewAuthService(_const.AuthSrv, client.DefaultClient)
 	})
 }
