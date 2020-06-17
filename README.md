@@ -11,30 +11,61 @@
 ## 基础框架搭建
 
 ## 文件上传
-1. 简单上传代码
-2. 前端分片上传,服务端分片存储
+2. 前端分片上传，服务端分片存储，文件合并。
 
 ## 用户管理
 1. 账号注册登录
 2. 鉴权管理
-//TODO 角色权限
 
 ## 配置中心
-etcd配置中心
+1. etcd配置中心
+
+   文件路径：cs/plugin/config
+
+   效果：支持热加载配置，配置数据统一管理。
+
+文件路径：
 
 ## 日志持久化
 
-> cs/plugin/log
+1. es文件存储
 
-elastic数据存储中心，kibana数据查看面板
+   文件路径：cs/plugin/log
 
-![image-20200605110122036](doc/image/日志效果.png)
+   效果：日志中间件，日志远程写入es
+
+   ![image-20200605110122036](https://img-blog.csdnimg.cn/20200617101928822.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80MjMyMjMwOQ==,size_16,color_FFFFFF,t_70)
 
 ## 熔断、降级、容错与健康检查
 
 ## 链路追踪
 
+1. opentracing
+
+   文件路径：cs/plugin/trace
+
+   效果：日志中间件，日志远程写入es
+
+
+   ![image-20200605110122036](https://img-blog.csdnimg.cn/20200617101928895.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80MjMyMjMwOQ==,size_16,color_FFFFFF,t_70)
+
 ## 容器化
+
+
+
+## 其它中间件
+
+- web服务中间件 cs/public/gin-middleware
+
+- linux命令行工具 cs/public/util
+
+- mysql组件 cs/plugin/db
+
+- redis组件 cs/plugin/rd
+
+- log组件 cs/plugin/log
+
+  
 
 ## How To Start
 
